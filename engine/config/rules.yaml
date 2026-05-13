@@ -1,0 +1,23 @@
+rules:
+  - name: "Port Scan"
+    type: "SCANNING"
+    enabled: true
+    severity: "High"
+    port_limit: 20
+    description: "Detects sequential or parallel connection attempts to multiple ports."
+
+  - name: "DoS SYN Flood"
+    type: "PROTOCOL_ANOMALY"
+    enabled: true
+    severity: "Critical"
+    syn_ratio_threshold: 0.8
+    pps_threshold: 100
+    description: "Detects high-rate traffic heavily biased towards SYN packets."
+
+  - name: "Volumetric Flood"
+    type: "VOLUMETRIC"
+    enabled: true
+    severity: "Medium"
+    pps_threshold: 1000
+    bps_threshold: 5000000
+    description: "Detects raw volumetric packet or byte floods."

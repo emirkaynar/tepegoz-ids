@@ -12,4 +12,4 @@ Let the AI judge whether a change is large enough to record here using a clear f
 
 ## Active Work
 
-- Define the Tier 1 data contracts and pipeline boundaries.
+No active work.

@@ -1,0 +1,9 @@
+services:
+  engine:
+    volumes:
+      - ./engine:/app
+      - ./data:/app/data
+    environment:
+      - APP_ENV=development
+      - FLOW_IDLE_TIMEOUT=5.0  # Faster timeouts for testing
+      - RULES_CONFIG_PATH=config/rules.yaml

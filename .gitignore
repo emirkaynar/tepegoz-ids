@@ -1,0 +1,26 @@
+# Datasets
+data/pcaps/*
+data/parquet/*
+*.pcap
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+env/
+venv/
+ENV/
+
+# Docker
+.docker/
+
+# Environment Variables
+.env
+
+conductor/
+
+# OS
+.DS_Store
+Thumbs.db
