@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by ADR-011
 
 ## Context
 
@@ -22,3 +22,10 @@ Use restart policies to ensure resilience on unexpected failures.
 - Container isolation reduces unexpected interactions.
 - Network capture privilege must be explicitly granted to the capture container.
 - Volume management and cleanup becomes an operational task.
+
+## Supersession Note
+
+This ADR is retained for historical context from Milestone 1-5. The active deployment direction is now defined by ADR-011:
+
+- Sensor runtime is native Linux package + `systemd`.
+- Docker Compose remains for development, replay tests, and optional companion stacks.

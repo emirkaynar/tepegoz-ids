@@ -12,6 +12,8 @@ Approved work that is not active yet belongs here.
 
 ## Current Items
 
+- Package the IDS sensor as a native Debian service with `systemd` support. (See ADR-011)
+- Define the optional Grafana/InfluxDB companion install path as separate services or a meta-package. (See ADR-011)
 - Define the rule schema and alert shape for the rule engine. (See ADR-004)
 - Document Tier 2 entry criteria so ML work stays conditional and separated. (See ADR-002)
 - Scaffold the Custom Grafana App Plugin (React) for rules configuration. (See ADR-009)

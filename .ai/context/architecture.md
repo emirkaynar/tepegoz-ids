@@ -17,6 +17,12 @@
 - `DatabaseManager`: writes metrics and alerts to InfluxDB.
 - `MLEngine`: future-only component for conditional Tier 2 work.
 
+## Deployment Topology
+
+- Sensor runtime: native Linux service (`systemd`) installed from the `tepegoz-ids` package.
+- Observability services: InfluxDB and Grafana as companion services that can be installed and managed separately.
+- Development/testing: Docker Compose remains available for replay harnesses, dashboard validation, and non-production experimentation.
+
 ## Data Flow
 
 - Raw packets are transient.
@@ -27,3 +33,4 @@
 
 - Prefer simple, deterministic, and measurable paths.
 - Keep interfaces explicit between capture, processing, decision, and storage.
+- Keep the sensor process lean; companion dashboard services must not block core detection runtime.

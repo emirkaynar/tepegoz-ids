@@ -1,7 +1,13 @@
 import os
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
-from .contracts import FlowRecord, AlertRecord
+from .contracts import (
+    AlertRecord,
+    FlowRecord,
+    HostSummaryRecord,
+    ServiceSummaryRecord,
+    TrafficSummaryRecord,
+)
 
 class DatabaseManager:
     """
@@ -50,13 +56,13 @@ class DatabaseManager:
             return
 
         point = Point("net_flow") \
-            .tag("flow_key", flow.flow_key) \
             .tag("protocol", flow.protocol) \
             .field("packets", flow.packet_count) \
             .field("bytes", flow.byte_count) \
             .field("duration", flow.duration) \
             .field("pps", flow.packets_per_second) \
             .field("bps", flow.bytes_per_second) \
+            .field("flow_key", flow.flow_key) \
             .time(int(flow.last_seen * 1e9), WritePrecision.NS)
 
         try:
@@ -65,6 +71,75 @@ class DatabaseManager:
             self.failed_flow_writes += 1
             if self.failed_flow_writes == 1 or self.failed_flow_writes % 100 == 0:
                 print(f"[DatabaseManager] Flow metric write failed ({self.failed_flow_writes}): {exc}")
+
+    def record_traffic_summary(self, summary: TrafficSummaryRecord):
+        """
+        Writes a dashboard-friendly traffic rollup.
+        """
+        if not self.metrics_write_api:
+            return
+
+        point = Point("traffic_rollup") \
+            .tag("protocol", summary.protocol) \
+            .tag("direction", summary.direction) \
+            .field("packet_count", summary.packet_count) \
+            .field("byte_count", summary.byte_count) \
+            .field("flow_count", summary.flow_count) \
+            .field("packets_per_second", summary.packets_per_second) \
+            .field("bytes_per_second", summary.bytes_per_second) \
+            .time(int(summary.timestamp * 1e9), WritePrecision.NS)
+
+        try:
+            self.metrics_write_api.write(bucket=self.bucket, org=self.org, record=point)
+        except Exception as exc:
+            self.failed_flow_writes += 1
+            if self.failed_flow_writes == 1 or self.failed_flow_writes % 100 == 0:
+                print(f"[DatabaseManager] Traffic summary write failed ({self.failed_flow_writes}): {exc}")
+
+    def record_host_summary(self, summary: HostSummaryRecord):
+        """
+        Writes a bounded top-host summary for Grafana ranking panels.
+        """
+        if not self.metrics_write_api:
+            return
+
+        point = Point("top_hosts_rollup") \
+            .tag("host_ip", summary.host_ip) \
+            .tag("role", summary.role) \
+            .field("packet_count", summary.packet_count) \
+            .field("byte_count", summary.byte_count) \
+            .field("flow_count", summary.flow_count) \
+            .time(int(summary.timestamp * 1e9), WritePrecision.NS)
+
+        try:
+            self.metrics_write_api.write(bucket=self.bucket, org=self.org, record=point)
+        except Exception as exc:
+            self.failed_flow_writes += 1
+            if self.failed_flow_writes == 1 or self.failed_flow_writes % 100 == 0:
+                print(f"[DatabaseManager] Host summary write failed ({self.failed_flow_writes}): {exc}")
+
+    def record_service_summary(self, summary: ServiceSummaryRecord):
+        """
+        Writes a bounded top-service summary for Grafana ranking panels.
+        """
+        if not self.metrics_write_api:
+            return
+
+        point = Point("top_services_rollup") \
+            .tag("service", summary.service) \
+            .tag("protocol", summary.protocol) \
+            .field("port", -1 if summary.port is None else summary.port) \
+            .field("packet_count", summary.packet_count) \
+            .field("byte_count", summary.byte_count) \
+            .field("flow_count", summary.flow_count) \
+            .time(int(summary.timestamp * 1e9), WritePrecision.NS)
+
+        try:
+            self.metrics_write_api.write(bucket=self.bucket, org=self.org, record=point)
+        except Exception as exc:
+            self.failed_flow_writes += 1
+            if self.failed_flow_writes == 1 or self.failed_flow_writes % 100 == 0:
+                print(f"[DatabaseManager] Service summary write failed ({self.failed_flow_writes}): {exc}")
 
     def record_alert(self, alert: AlertRecord):
         """
@@ -76,8 +151,9 @@ class DatabaseManager:
         point = Point("alerts") \
             .tag("rule_name", alert.rule_name) \
             .tag("severity", alert.severity) \
-            .tag("src_ip", alert.src_ip) \
-            .tag("dst_ip", alert.dst_ip) \
+            .tag("direction", getattr(alert, 'direction', 'unknown')) \
+            .field("src_ip", alert.src_ip) \
+            .field("dst_ip", alert.dst_ip) \
             .field("description", alert.description) \
             .field("flow_key", alert.flow_key) \
             .time(int(alert.timestamp * 1e9), WritePrecision.NS)

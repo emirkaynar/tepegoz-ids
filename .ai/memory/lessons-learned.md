@@ -13,3 +13,5 @@ Record verified approaches that worked so future sessions can reuse them.
 - Deterministic rule-based detection is fast enough for Tier 1 when rule evaluation is O(1) and flow state is bounded.
 - Batching InfluxDB writes reduces I/O overhead without sacrificing alert responsiveness when alerts and metrics are on separate write schedules.
 - Performance measurement should happen early and often; speculate on bottlenecks but verify with actual metrics.
+- Native host deployment for the sensor reduces container bridge noise and simplifies direction semantics for real traffic.
+- A split-product UX works well: install sensor first, then bootstrap dashboard stack on demand via a dedicated command.

@@ -8,7 +8,7 @@ Lightweight Hybrid Intrusion Detection System for small-scale networks.
 
 - Release 1.0 focuses on Tier 1 rule-based detection.
 - The system captures traffic, extracts flow features, evaluates rule thresholds, and writes alerts and metrics to InfluxDB.
-- Grafana provides the dashboard layer.
+- Grafana provides the dashboard layer as an optional companion service path.
 
 ## Future Scope
 
@@ -19,7 +19,8 @@ Lightweight Hybrid Intrusion Detection System for small-scale networks.
 
 - Optimize for low CPU and memory usage.
 - Analyze metadata and flow behavior, not payload content.
-- Assume Docker-based deployment on Linux with network capture privileges.
+- Assume native Linux sensor deployment with network capture privileges.
+- Keep Docker Compose as a development and replay-testing harness, not the authoritative sensor runtime.
 
 ## Canonical Sources
 

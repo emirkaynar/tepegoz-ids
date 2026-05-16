@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Optional
 
 @dataclass
 class PacketRecord:
@@ -61,3 +61,48 @@ class AlertRecord:
     dst_ip: str
     description: str
     flow_key: str
+
+@dataclass
+class TrafficSummaryRecord:
+    """
+    Low-cardinality traffic rollup used by Grafana dashboard panels.
+    """
+    __slots__ = ['timestamp', 'protocol', 'direction', 'packet_count', 'byte_count', 'flow_count', 'packets_per_second', 'bytes_per_second']
+
+    timestamp: float
+    protocol: str
+    direction: str
+    packet_count: int
+    byte_count: int
+    flow_count: int
+    packets_per_second: float
+    bytes_per_second: float
+
+@dataclass
+class HostSummaryRecord:
+    """
+    Top-host rollup used for Sniffnet-style dashboard rankings.
+    """
+    __slots__ = ['timestamp', 'host_ip', 'role', 'packet_count', 'byte_count', 'flow_count']
+
+    timestamp: float
+    host_ip: str
+    role: str
+    packet_count: int
+    byte_count: int
+    flow_count: int
+
+@dataclass
+class ServiceSummaryRecord:
+    """
+    Top-service rollup used for Sniffnet-style service rankings.
+    """
+    __slots__ = ['timestamp', 'service', 'protocol', 'port', 'packet_count', 'byte_count', 'flow_count']
+
+    timestamp: float
+    service: str
+    protocol: str
+    port: Optional[int]
+    packet_count: int
+    byte_count: int
+    flow_count: int
