@@ -1,23 +1,170 @@
 rules:
+  # ---------------------------------------------------------------
+  # Port Scan Detection
+  # ---------------------------------------------------------------
   - name: "Port Scan"
-    type: "SCANNING"
     enabled: true
     severity: "High"
-    port_limit: 20
-    description: "Detects sequential or parallel connection attempts to multiple ports."
+    logic: "all"
+    conditions:
+      - field: "unique_dst_ports_count"
+        op: "gte"
+        value: 20
+    description: >-
+      A single device tried to connect to {unique_dst_ports_count} different
+      ports on the target — this usually means someone is scanning the network
+      to find open services they can exploit.
 
+  # ---------------------------------------------------------------
+  # SYN Flood (TCP Handshake Abuse)
+  # ---------------------------------------------------------------
   - name: "DoS SYN Flood"
-    type: "PROTOCOL_ANOMALY"
     enabled: true
     severity: "Critical"
-    syn_ratio_threshold: 0.8
-    pps_threshold: 100
-    description: "Detects high-rate traffic heavily biased towards SYN packets."
+    logic: "all"
+    conditions:
+      - field: "syn_ratio"
+        op: "gte"
+        value: 0.8
+      - field: "packets_per_second"
+        op: "gte"
+        value: 100
+    description: >-
+      {syn_ratio:.0%} of packets are connection-request (SYN) packets at
+      {packets_per_second:.0f} packets/sec — normal traffic has a low SYN ratio,
+      so this looks like a denial-of-service attack flooding the target with
+      fake connection attempts.
 
+  # ---------------------------------------------------------------
+  # Generic Volumetric Flood
+  # ---------------------------------------------------------------
   - name: "Volumetric Flood"
-    type: "VOLUMETRIC"
     enabled: true
     severity: "Medium"
-    pps_threshold: 1000
-    bps_threshold: 5000000
-    description: "Detects raw volumetric packet or byte floods."
+    logic: "any"
+    conditions:
+      - field: "packets_per_second"
+        op: "gte"
+        value: 1000
+      - field: "bytes_per_second"
+        op: "gte"
+        value: 5000000
+    description: >-
+      Traffic from this source hit {packets_per_second:.0f} packets/sec or
+      {bytes_per_second:.0f} bytes/sec — this volume is unusually high and may
+      indicate a flood attack designed to overwhelm the network.
+
+  # ---------------------------------------------------------------
+  # UDP Flood
+  # ---------------------------------------------------------------
+  - name: "UDP Flood"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "UDP"
+      - field: "packets_per_second"
+        op: "gte"
+        value: 500
+    description: >-
+      A burst of {packets_per_second:.0f} UDP packets/sec was detected.
+      UDP floods are commonly used in denial-of-service attacks because
+      UDP does not require a connection handshake, making it easy to
+      forge and amplify.
+
+  # ---------------------------------------------------------------
+  # DNS Amplification Attack
+  # ---------------------------------------------------------------
+  - name: "DNS Amplification"
+    enabled: true
+    severity: "Critical"
+    logic: "all"
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "UDP"
+      - field: "dst_port"
+        op: "eq"
+        value: 53
+      - field: "packets_per_second"
+        op: "gte"
+        value: 200
+      - field: "avg_packet_size"
+        op: "lte"
+        value: 100
+    description: >-
+      High-rate small DNS packets detected (avg {avg_packet_size:.0f} bytes at
+      {packets_per_second:.0f}/sec). Attackers often abuse public DNS servers to
+      amplify traffic toward a victim — the small request generates a much
+      larger response.
+
+  # ---------------------------------------------------------------
+  # Suspicious Long-Lived Connection
+  # ---------------------------------------------------------------
+  - name: "Suspicious Long Flow"
+    enabled: true
+    severity: "Medium"
+    logic: "all"
+    conditions:
+      - field: "duration"
+        op: "gte"
+        value: 300
+      - field: "packet_count"
+        op: "gte"
+        value: 100
+    description: >-
+      A connection has been active for {duration:.0f} seconds with
+      {packet_count} packets. Most normal connections are short-lived — a
+      long-running flow may indicate a hidden tunnel, a persistent backdoor,
+      or an attacker maintaining access to the network.
+
+  # ---------------------------------------------------------------
+  # Command-and-Control Beaconing
+  # ---------------------------------------------------------------
+  - name: "C2 Beacon"
+    enabled: true
+    severity: "Critical"
+    logic: "all"
+    conditions:
+      - field: "direction"
+        op: "eq"
+        value: "outbound"
+      - field: "duration"
+        op: "gte"
+        value: 300
+      - field: "packets_per_second"
+        op: "lte"
+        value: 1
+      - field: "packet_count"
+        op: "gte"
+        value: 50
+    description: >-
+      A device on your network has been sending a slow, steady trickle of
+      outbound traffic for {duration:.0f} seconds ({packets_per_second:.2f}
+      packets/sec). This "heartbeat" pattern is how malware checks in with
+      its command server — the low rate is designed to avoid detection.
+
+  # ---------------------------------------------------------------
+  # Data Exfiltration (Large Outbound Transfer)
+  # ---------------------------------------------------------------
+  - name: "Data Exfiltration"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    conditions:
+      - field: "direction"
+        op: "eq"
+        value: "outbound"
+      - field: "byte_count"
+        op: "gte"
+        value: 10000000
+      - field: "duration"
+        op: "gte"
+        value: 60
+    description: >-
+      A device sent {byte_count} bytes outbound over {duration:.0f} seconds.
+      Large sustained outbound transfers can indicate that sensitive data is
+      being stolen from your network — especially if this device does not
+      normally upload large files.

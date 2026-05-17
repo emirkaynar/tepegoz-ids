@@ -1,15 +1,33 @@
 import yaml
 import time
-from typing import List, Dict
+from typing import List, Dict, Any, Optional
 from .contracts import FlowRecord, AlertRecord
+
+# Supported comparison operators for rule conditions.
+_OPS = {
+    "eq":  lambda a, b: a == b,
+    "neq": lambda a, b: a != b,
+    "gt":  lambda a, b: a > b,
+    "gte": lambda a, b: a >= b,
+    "lt":  lambda a, b: a < b,
+    "lte": lambda a, b: a <= b,
+}
+
 
 class RuleEngine:
     """
-    Deterministic detection engine that evaluates FlowRecords against thresholds.
+    Schema-driven detection engine that evaluates FlowRecords against
+    declarative YAML conditions.
+
+    Each rule defines a list of {field, op, value} conditions and a
+    logic mode ('all' or 'any').  Virtual fields (avg_packet_size,
+    syn_ratio, unique_dst_ports_count, direction) are computed on demand
+    from the FlowRecord without requiring upstream changes.
     """
+
     def __init__(self, config_path: str):
         self.config_path = config_path
-        self.rules = []
+        self.rules: List[Dict[str, Any]] = []
         self.load_rules()
 
     def load_rules(self):
@@ -25,52 +43,108 @@ class RuleEngine:
             print(f"[RuleEngine] Error loading rules: {e}")
             self.rules = []
 
-    def evaluate(self, flow: FlowRecord) -> List[AlertRecord]:
+    # ------------------------------------------------------------------
+    # Virtual field computation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _build_context(flow: FlowRecord, direction: str) -> Dict[str, Any]:
+        """
+        Build a flat dict of all fields available for condition evaluation.
+        Includes raw FlowRecord attributes plus computed virtual fields.
+        """
+        pkt = flow.packet_count if flow.packet_count > 0 else 1
+
+        ctx: Dict[str, Any] = {
+            # Raw FlowRecord fields
+            "flow_key": flow.flow_key,
+            "src_ip": flow.src_ip,
+            "dst_ip": flow.dst_ip,
+            "src_port": flow.src_port,
+            "dst_port": flow.dst_port,
+            "protocol": flow.protocol,
+            "packet_count": flow.packet_count,
+            "byte_count": flow.byte_count,
+            "duration": flow.duration,
+            "packets_per_second": flow.packets_per_second,
+            "bytes_per_second": flow.bytes_per_second,
+            "syn_count": flow.syn_count,
+            # Computed virtual fields
+            "avg_packet_size": flow.byte_count / pkt,
+            "syn_ratio": flow.syn_count / pkt,
+            "unique_dst_ports_count": len(flow.unique_dst_ports),
+            "direction": direction,
+        }
+        return ctx
+
+    # ------------------------------------------------------------------
+    # Condition evaluation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _evaluate_condition(ctx: Dict[str, Any], condition: Dict[str, Any]) -> bool:
+        """
+        Evaluate a single {field, op, value} condition against the context.
+        Returns False (safe) if the field is missing or the operator is unknown.
+        """
+        field = condition.get("field")
+        op_name = condition.get("op")
+        expected = condition.get("value")
+
+        if field is None or op_name is None or expected is None:
+            return False
+
+        actual = ctx.get(field)
+        if actual is None:
+            return False
+
+        op_fn = _OPS.get(op_name)
+        if op_fn is None:
+            return False
+
+        try:
+            return op_fn(actual, expected)
+        except TypeError:
+            return False
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def evaluate(self, flow: FlowRecord, direction: str = "unknown") -> List[AlertRecord]:
         """
         Evaluates a finalized flow against all enabled rules.
         """
-        alerts = []
+        ctx = self._build_context(flow, direction)
+        alerts: List[AlertRecord] = []
+
         for rule in self.rules:
             if not rule.get('enabled', True):
                 continue
-            
-            triggered = False
-            reason = ""
-            
-            rule_type = rule.get('type')
-            
-            if rule_type == 'SCANNING':
-                # Port Scan: Unique destination ports exceeded
-                port_count = len(flow.unique_dst_ports)
-                if port_count >= rule.get('port_limit', 20):
-                    triggered = True
-                    reason = f"Unique destination ports ({port_count}) exceeded limit ({rule.get('port_limit')})"
-            
-            elif rule_type == 'PROTOCOL_ANOMALY':
-                # SYN Flood: High SYN ratio and high PPS
-                syn_ratio = flow.syn_count / flow.packet_count if flow.packet_count > 0 else 0
-                pps = flow.packets_per_second
-                
-                ratio_threshold = rule.get('syn_ratio_threshold', 0.8)
-                pps_threshold = rule.get('pps_threshold', 100)
-                
-                if syn_ratio >= ratio_threshold and pps >= pps_threshold:
-                    triggered = True
-                    reason = f"SYN ratio ({syn_ratio:.2f}) and PPS ({pps:.1f}) exceeded thresholds"
-            
-            elif rule_type == 'VOLUMETRIC':
-                # Generic Volumetric Flood: High PPS or BPS
-                pps = flow.packets_per_second
-                bps = flow.bytes_per_second
-                
-                pps_t = rule.get('pps_threshold', 1000)
-                bps_t = rule.get('bps_threshold', 5000000)
-                
-                if pps >= pps_t or bps >= bps_t:
-                    triggered = True
-                    reason = f"Volumetric thresholds exceeded (PPS: {pps:.1f}/{pps_t}, BPS: {bps:.1f}/{bps_t})"
+
+            conditions = rule.get('conditions', [])
+            if not conditions:
+                continue
+
+            logic = rule.get('logic', 'all')
+
+            if logic == 'any':
+                triggered = any(
+                    self._evaluate_condition(ctx, c) for c in conditions
+                )
+            else:
+                triggered = all(
+                    self._evaluate_condition(ctx, c) for c in conditions
+                )
 
             if triggered:
+                # Build description from template with context values
+                desc_template = rule.get('description', '')
+                try:
+                    reason = desc_template.format(**ctx)
+                except (KeyError, ValueError, IndexError):
+                    reason = desc_template
+
                 alert = AlertRecord(
                     timestamp=time.time(),
                     rule_name=rule.get('name', 'Unknown'),
@@ -78,8 +152,8 @@ class RuleEngine:
                     src_ip=flow.src_ip,
                     dst_ip=flow.dst_ip,
                     description=reason,
-                    flow_key=flow.flow_key
+                    flow_key=flow.flow_key,
                 )
                 alerts.append(alert)
-        
+
         return alerts

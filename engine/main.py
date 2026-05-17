@@ -98,8 +98,8 @@ def main():
                 )
             return
 
-        # 3. Evaluate rules
-        alerts = rule_engine.evaluate(flow)
+        # 3. Evaluate rules (direction is available for directional rules)
+        alerts = rule_engine.evaluate(flow, direction)
         
         # 4. Persist metrics
         db_manager.record_flow(flow)

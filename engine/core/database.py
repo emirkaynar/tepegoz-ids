@@ -1,5 +1,7 @@
 import os
+# pyrefly: ignore [missing-import]
 from influxdb_client import InfluxDBClient, Point, WritePrecision
+# pyrefly: ignore [missing-import]
 from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
 from .contracts import (
     AlertRecord,
