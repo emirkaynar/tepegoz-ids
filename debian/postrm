@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+    rm -rf /etc/tepegoz-ids
+    rm -rf /var/lib/tepegoz-ids
+    rm -rf /var/log/tepegoz-ids
+fi
+
+#DEBHELPER#
+
+exit 0

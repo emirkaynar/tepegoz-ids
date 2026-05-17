@@ -1,0 +1,12 @@
+tepegoz-ids (0.1.14) unstable; urgency=medium
+
+  * Fix sensor authentication with InfluxDB by correctly loading sensor.conf into the environment.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Sun, 17 May 2026 21:25:00 +0000
+
+tepegoz-ids (0.1.13) unstable; urgency=medium
+
+  * Milestone 6 bootstrap: native package skeleton, CLI scaffolding,
+    and initial dash state/orchestration interfaces.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Sat, 16 May 2026 12:00:00 +0000

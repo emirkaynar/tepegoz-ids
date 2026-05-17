@@ -8,21 +8,23 @@ from core.rules import RuleEngine
 from core.database import DatabaseManager
 from core.summary import SummaryAggregator
 from core.networks import parse_networks_csv, resolve_excluded_networks, ip_in_any_network
+from core.settings import get_bool_setting, get_setting
 
 def main():
-    load_dotenv()
+    config_path = os.getenv("TEPEGOZ_SENSOR_CONFIG_PATH", "/etc/tepegoz-ids/sensor.conf")
+    load_dotenv(config_path)
     
     print("--- Lightweight Hybrid IDS Engine Starting ---")
     print(f"Environment: {os.getenv('APP_ENV', 'development')}")
     
     # Configuration
-    interface = os.getenv("IDS_INTERFACE", "eth0")
-    idle_timeout = float(os.getenv("FLOW_IDLE_TIMEOUT", "15.0"))
-    max_duration = float(os.getenv("FLOW_MAX_DURATION", "120.0"))
-    summary_flush_interval = float(os.getenv("SUMMARY_FLUSH_INTERVAL", "5.0"))
-    rules_config = os.getenv("RULES_CONFIG_PATH", "config/rules.yaml")
-    auto_detect_container_nets = os.getenv("AUTO_DETECT_CONTAINER_NETS", "true").strip().lower() in {"1", "true", "yes", "on"}
-    suppress_excluded_internal = os.getenv("SUPPRESS_EXCLUDED_INTERNAL", "true").strip().lower() in {"1", "true", "yes", "on"}
+    interface = get_setting("IDS_INTERFACE", "eth0", config_path)
+    idle_timeout = float(get_setting("FLOW_IDLE_TIMEOUT", "15.0", config_path))
+    max_duration = float(get_setting("FLOW_MAX_DURATION", "120.0", config_path))
+    summary_flush_interval = float(get_setting("SUMMARY_FLUSH_INTERVAL", "5.0", config_path))
+    rules_config = get_setting("RULES_CONFIG_PATH", "config/rules.yaml", config_path)
+    auto_detect_container_nets = get_bool_setting("AUTO_DETECT_CONTAINER_NETS", True, config_path)
+    suppress_excluded_internal = get_bool_setting("SUPPRESS_EXCLUDED_INTERNAL", True, config_path)
     
     # Initialize components
     rule_engine = RuleEngine(config_path=rules_config)
@@ -32,9 +34,9 @@ def main():
 
     # Parse LOCAL_NETS from env (default RFC1918)
     DEFAULT_LOCAL_NETS = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-    local_nets = parse_networks_csv(os.getenv("LOCAL_NETS", DEFAULT_LOCAL_NETS))
+    local_nets = parse_networks_csv(get_setting("LOCAL_NETS", DEFAULT_LOCAL_NETS, config_path))
     excluded_nets = resolve_excluded_networks(
-        os.getenv("EXCLUDE_NETS", ""),
+        get_setting("EXCLUDE_NETS", "", config_path),
         auto_detect_container_nets=auto_detect_container_nets,
     )
 
@@ -42,9 +44,10 @@ def main():
     # set of common Docker/Hyper-V bridge subnets as a fallback so users on
     # Docker Desktop / Windows still get suppression without hardcoding.
     if auto_detect_container_nets and not excluded_nets:
-        fallback_csv = os.getenv(
+        fallback_csv = get_setting(
             "FALLBACK_DOCKER_EXCLUDE_NETS",
             "172.17.0.0/16,192.168.65.0/24,10.0.75.0/24",
+            config_path,
         )
         fallback_nets = parse_networks_csv(fallback_csv)
         if fallback_nets:

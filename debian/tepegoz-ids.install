@@ -1,0 +1,8 @@
+engine/core/* /opt/tepegoz-ids/engine/core/
+engine/tgcli/* /opt/tepegoz-ids/engine/tgcli/
+engine/main.py /opt/tepegoz-ids/engine/
+engine/tepegoz.py /opt/tepegoz-ids/engine/
+engine/config/rules.yaml /etc/tepegoz-ids/
+engine/config/sensor.conf.example /etc/tepegoz-ids/
+debian/tepegoz /usr/bin/
+grafana/* /opt/tepegoz-ids/grafana/

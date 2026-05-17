@@ -1,0 +1,20 @@
+[Unit]
+Description=Tepegoz IDS Sensor Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tepegoz
+Group=tepegoz
+WorkingDirectory=/opt/tepegoz-ids/engine
+Environment=TEPEGOZ_SENSOR_CONFIG_PATH=/etc/tepegoz-ids/sensor.conf
+ExecStart=/usr/bin/python3 -u /opt/tepegoz-ids/engine/main.py
+Restart=always
+RestartSec=3
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

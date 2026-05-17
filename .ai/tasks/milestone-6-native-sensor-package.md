@@ -43,6 +43,13 @@ Use the native sensor package as the authoritative runtime path. Keep Docker Com
     - `sudo tepegoz dash status`
     - `sudo tepegoz sensor iface set <name>`
 
+## Locked Defaults
+
+- Offline support is in-scope now: APT-first install path with bundled `.deb` fallback in the same milestone.
+- Sensor runtime privilege model is least-privilege by default: dedicated service user with required network capabilities.
+- Network validation topology uses 2 VMs in VirtualBox (traffic source + sensor) as the primary integration gate.
+- Release gate order is Ubuntu 22.04+ first, then Raspberry Pi OS Lite 64-bit validation immediately after.
+
 ## Execution Breakdown
 
 ### Stage A: Packaging and Service Baseline

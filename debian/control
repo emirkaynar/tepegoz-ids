@@ -1,0 +1,16 @@
+Source: tepegoz-ids
+Section: net
+Priority: optional
+Maintainer: Tepegoz IDS Team <maintainers@tepegoz.local>
+Build-Depends: debhelper-compat (= 13), dh-python, python3
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: tepegoz-ids
+Architecture: any
+Depends: ${misc:Depends}, python3, python3-scapy, python3-dotenv, python3-yaml, python3-influxdb-client, libcap2-bin
+Recommends: influxdb2, grafana
+Description: Lightweight hybrid IDS sensor with optional dashboard bootstrap
+ Native-first IDS sensor runtime with metadata-only flow analysis.
+ The sensor runs as a systemd service and can optionally bootstrap
+ companion observability services via CLI commands.

@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: tepegoz-ids
+Source: local
+
+Files: *
+Copyright: 2026 Tepegoz IDS contributors
+License: Proprietary
+ This repository currently has no Debian-packaging-specific license grant.
+ Replace this section with the canonical project license before release.

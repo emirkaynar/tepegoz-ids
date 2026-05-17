@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME=tepegoz-ids
+
+%:
+	dh $@ --with python3
+
+override_dh_install:
+	dh_install
+	# Safely rename the example config to the active config name
+	mv debian/tepegoz-ids/etc/tepegoz-ids/sensor.conf.example debian/tepegoz-ids/etc/tepegoz-ids/sensor.conf

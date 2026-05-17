@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        if ! id -u tepegoz >/dev/null 2>&1; then
+            adduser --system --group --home /var/lib/tepegoz-ids --no-create-home tepegoz
+        fi
+
+        install -d -o root -g root -m 0755 /etc/tepegoz-ids
+        install -d -o tepegoz -g tepegoz -m 0750 /var/lib/tepegoz-ids
+        install -d -o tepegoz -g tepegoz -m 0755 /var/log/tepegoz-ids
+
+        # Ensure correct permissions on config files
+        chmod 0644 /etc/tepegoz-ids/sensor.conf || true
+        chmod 0644 /etc/tepegoz-ids/rules.yaml || true
+        chmod 0755 /usr/bin/tepegoz || true
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0
