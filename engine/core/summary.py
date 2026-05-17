@@ -6,6 +6,20 @@ from typing import List, Optional
 
 from .contracts import FlowRecord, HostSummaryRecord, ServiceSummaryRecord, TrafficSummaryRecord
 
+# Well-known port → human-readable service name mapping.
+# Kept small (~30 entries) to stay lightweight per ADR-006.
+PORT_TO_SERVICE = {
+    20: "FTP-Data", 21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP",
+    53: "DNS", 67: "DHCP", 68: "DHCP", 80: "HTTP", 110: "POP3",
+    123: "NTP", 143: "IMAP", 161: "SNMP", 162: "SNMP-Trap",
+    443: "HTTPS", 445: "SMB", 465: "SMTPS", 514: "Syslog",
+    587: "SMTP-Sub", 993: "IMAPS", 995: "POP3S",
+    1433: "MSSQL", 1883: "MQTT", 3306: "MySQL", 3389: "RDP",
+    5432: "PostgreSQL", 5672: "AMQP", 6379: "Redis",
+    8080: "HTTP-Alt", 8086: "InfluxDB", 8443: "HTTPS-Alt",
+    8883: "MQTT-TLS", 9090: "Prometheus",
+}
+
 
 @dataclass
 class SummaryFlushBatch:
@@ -129,14 +143,26 @@ class SummaryAggregator:
     def _service_key(protocol: str, port: Optional[int]) -> str:
         if port is None:
             return f"{protocol}:unknown"
+        name = PORT_TO_SERVICE.get(port)
+        if name:
+            return name
         return f"{protocol}:{port}"
 
     @staticmethod
     def _protocol_from_service(service_key: str) -> str:
-        return service_key.split(":", 1)[0]
+        if ":" in service_key:
+            return service_key.split(":", 1)[0]
+        # Resolved well-known name (e.g. "HTTP") — no embedded protocol.
+        return service_key
 
     @staticmethod
     def _port_from_service(service_key: str) -> Optional[int]:
+        if ":" not in service_key:
+            # Reverse-lookup: resolved name → port number.
+            for port, name in PORT_TO_SERVICE.items():
+                if name == service_key:
+                    return port
+            return None
         _, port_text = service_key.split(":", 1)
         if port_text == "unknown":
             return None

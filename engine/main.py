@@ -11,11 +11,15 @@ from core.networks import parse_networks_csv, resolve_excluded_networks, ip_in_a
 from core.settings import get_bool_setting, get_setting
 
 def main():
-    config_path = os.getenv("TEPEGOZ_SENSOR_CONFIG_PATH", "/etc/tepegoz-ids/sensor.conf")
-    load_dotenv(config_path)
+    load_dotenv()
     
+    config_path = os.getenv("TEPEGOZ_SENSOR_CONFIG_PATH", "/etc/tepegoz-ids/sensor.conf")
+    
+    # Load settings from sensor.conf into environment variables
+    if os.path.exists(config_path):
+        load_dotenv(dotenv_path=config_path)
+
     print("--- Lightweight Hybrid IDS Engine Starting ---")
-    print(f"Environment: {os.getenv('APP_ENV', 'development')}")
     
     # Configuration
     interface = get_setting("IDS_INTERFACE", "eth0", config_path)

@@ -4,14 +4,14 @@
     "tags": ["ids", "influxdb", "grafana"],
     "timezone": "browser",
     "schemaVersion": 39,
-    "version": 2,
+    "version": 3,
     "refresh": "5s",
     "time": {
         "from": "now-15m",
         "to": "now"
     },
     "editable": false,
-    "graphTooltip": 0,
+    "graphTooltip": 1,
     "templating": {
         "list": []
     },
@@ -20,40 +20,251 @@
     },
     "panels": [
         {
-            "id": 1,
-            "type": "timeseries",
-            "title": "Traffic Rate",
+            "id": 10,
+            "type": "stat",
+            "title": "Throughput",
+            "description": "Total bytes per second across all protocols",
             "datasource": {
                 "type": "influxdb",
                 "uid": "ids-influxdb"
             },
-            "gridPos": {
-                "x": 0,
-                "y": 0,
-                "w": 24,
-                "h": 8
-            },
+            "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
             "fieldConfig": {
                 "defaults": {
-                    "unit": "short"
+                    "unit": "Bps",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "#73BF69", "value": null },
+                            { "color": "#FF9830", "value": 1000000 },
+                            { "color": "#F2495C", "value": 5000000 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "graphMode": "area",
+                "colorMode": "background",
+                "justifyMode": "auto",
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\" and r._field == \"bytes_per_second\") |> group() |> sum() |> map(fn: (r) => ({r with _field: \"Throughput\"}))",
+                    "resultFormat": "time_series"
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "type": "stat",
+            "title": "Packet Rate",
+            "description": "Total packets per second across all protocols",
+            "datasource": {
+                "type": "influxdb",
+                "uid": "ids-influxdb"
+            },
+            "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "pps",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "#73BF69", "value": null },
+                            { "color": "#FF9830", "value": 5000 },
+                            { "color": "#F2495C", "value": 20000 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "graphMode": "area",
+                "colorMode": "background",
+                "justifyMode": "auto",
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\" and r._field == \"packets_per_second\") |> group() |> sum() |> map(fn: (r) => ({r with _field: \"Packets\"}))",
+                    "resultFormat": "time_series"
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "type": "stat",
+            "title": "Active Flows",
+            "description": "Total flows observed in the current window",
+            "datasource": {
+                "type": "influxdb",
+                "uid": "ids-influxdb"
+            },
+            "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "#73BF69", "value": null },
+                            { "color": "#FF9830", "value": 500 },
+                            { "color": "#F2495C", "value": 2000 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+                "graphMode": "area",
+                "colorMode": "background",
+                "justifyMode": "auto",
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\" and r._field == \"flow_count\") |> group() |> sum() |> map(fn: (r) => ({r with _field: \"Flows\"}))",
+                    "resultFormat": "time_series"
+                }
+            ]
+        },
+        {
+            "id": 13,
+            "type": "stat",
+            "title": "Alerts",
+            "description": "Total alerts triggered in the current time window",
+            "datasource": {
+                "type": "influxdb",
+                "uid": "ids-influxdb"
+            },
+            "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            { "color": "#73BF69", "value": null },
+                            { "color": "#FF9830", "value": 5 },
+                            { "color": "#F2495C", "value": 20 }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "reduceOptions": { "calcs": ["count"], "fields": "", "values": false },
+                "graphMode": "none",
+                "colorMode": "background",
+                "justifyMode": "auto",
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"alerts\" and r._field == \"description\") |> group() |> count() |> map(fn: (r) => ({r with _field: \"Alerts\"}))",
+                    "resultFormat": "time_series"
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "type": "timeseries",
+            "title": "Throughput",
+            "description": "Network throughput by protocol and direction",
+            "datasource": {
+                "type": "influxdb",
+                "uid": "ids-influxdb"
+            },
+            "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "Bps",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 15,
+                        "lineWidth": 2,
+                        "pointSize": 5,
+                        "showPoints": "never",
+                        "spanNulls": true
+                    }
                 },
                 "overrides": []
             },
             "options": {
                 "legend": {
                     "showLegend": true,
-                    "displayMode": "list",
-                    "placement": "bottom"
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": ["lastNotNull", "max"]
                 },
                 "tooltip": {
-                    "mode": "single",
-                    "sort": "none"
+                    "mode": "multi",
+                    "sort": "desc"
                 }
             },
             "targets": [
                 {
                     "refId": "A",
-                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\") |> filter(fn: (r) => r._field == \"packets_per_second\" or r._field == \"bytes_per_second\") |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false) |> group(columns:[\"protocol\", \"direction\", \"_field\"])",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\" and r._field == \"bytes_per_second\") |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false) |> map(fn: (r) => ({r with _field: r.protocol + \" \" + r.direction})) |> keep(columns: [\"_time\", \"_value\", \"_field\"]) |> group(columns: [\"_field\"])",
+                    "resultFormat": "time_series"
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "type": "timeseries",
+            "title": "Packet Rate",
+            "description": "Packets per second by protocol and direction",
+            "datasource": {
+                "type": "influxdb",
+                "uid": "ids-influxdb"
+            },
+            "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "pps",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 15,
+                        "lineWidth": 2,
+                        "pointSize": 5,
+                        "showPoints": "never",
+                        "spanNulls": true
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "showLegend": true,
+                    "displayMode": "table",
+                    "placement": "bottom",
+                    "calcs": ["lastNotNull", "max"]
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "refId": "A",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\" and r._field == \"packets_per_second\") |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false) |> map(fn: (r) => ({r with _field: r.protocol + \" \" + r.direction})) |> keep(columns: [\"_time\", \"_value\", \"_field\"]) |> group(columns: [\"_field\"])",
                     "resultFormat": "time_series"
                 }
             ]
@@ -62,27 +273,59 @@
             "id": 2,
             "type": "table",
             "title": "Top Hosts",
+            "description": "Most active hosts by traffic volume",
             "datasource": {
                 "type": "influxdb",
                 "uid": "ids-influxdb"
             },
-            "gridPos": {
-                "x": 0,
-                "y": 8,
-                "w": 12,
-                "h": 8
-            },
+            "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
             "fieldConfig": {
                 "defaults": {},
-                "overrides": []
+                "overrides": [
+                    {
+                        "matcher": { "id": "byName", "options": "_time" },
+                        "properties": [
+                            { "id": "custom.hidden", "value": true }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "host_ip" },
+                        "properties": [
+                            { "id": "displayName", "value": "Host" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "packet_count" },
+                        "properties": [
+                            { "id": "displayName", "value": "Packets" },
+                            { "id": "unit", "value": "short" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "byte_count" },
+                        "properties": [
+                            { "id": "displayName", "value": "Bytes" },
+                            { "id": "unit", "value": "decbytes" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "flow_count" },
+                        "properties": [
+                            { "id": "displayName", "value": "Flows" },
+                            { "id": "unit", "value": "short" }
+                        ]
+                    }
+                ]
             },
             "options": {
-                "showHeader": true
+                "showHeader": true,
+                "sortBy": [{ "displayName": "Bytes", "desc": true }],
+                "footer": { "show": false }
             },
             "targets": [
                 {
                     "refId": "B",
-                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"top_hosts_rollup\") |> filter(fn: (r) => r._field == \"packet_count\" or r._field == \"byte_count\" or r._field == \"flow_count\") |> pivot(rowKey:[\"_time\", \"host_ip\", \"role\"], columnKey:[\"_field\"], valueColumn:\"_value\") |> sort(columns:[\"byte_count\"], desc:true) |> limit(n: 10)",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"top_hosts_rollup\") |> filter(fn: (r) => r._field == \"packet_count\" or r._field == \"byte_count\" or r._field == \"flow_count\") |> group(columns: [\"host_ip\", \"_field\"]) |> sum() |> group() |> pivot(rowKey: [\"host_ip\"], columnKey: [\"_field\"], valueColumn: \"_value\") |> sort(columns: [\"byte_count\"], desc: true) |> limit(n: 10) |> keep(columns: [\"host_ip\", \"packet_count\", \"byte_count\", \"flow_count\"])",
                     "resultFormat": "table"
                 }
             ]
@@ -91,27 +334,65 @@
             "id": 3,
             "type": "table",
             "title": "Top Services",
+            "description": "Most active services by traffic volume",
             "datasource": {
                 "type": "influxdb",
                 "uid": "ids-influxdb"
             },
-            "gridPos": {
-                "x": 12,
-                "y": 8,
-                "w": 12,
-                "h": 8
-            },
+            "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
             "fieldConfig": {
                 "defaults": {},
-                "overrides": []
+                "overrides": [
+                    {
+                        "matcher": { "id": "byName", "options": "_time" },
+                        "properties": [
+                            { "id": "custom.hidden", "value": true }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "service" },
+                        "properties": [
+                            { "id": "displayName", "value": "Service" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "protocol" },
+                        "properties": [
+                            { "id": "displayName", "value": "Protocol" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "packet_count" },
+                        "properties": [
+                            { "id": "displayName", "value": "Packets" },
+                            { "id": "unit", "value": "short" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "byte_count" },
+                        "properties": [
+                            { "id": "displayName", "value": "Bytes" },
+                            { "id": "unit", "value": "decbytes" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "flow_count" },
+                        "properties": [
+                            { "id": "displayName", "value": "Flows" },
+                            { "id": "unit", "value": "short" }
+                        ]
+                    }
+                ]
             },
             "options": {
-                "showHeader": true
+                "showHeader": true,
+                "sortBy": [{ "displayName": "Bytes", "desc": true }],
+                "footer": { "show": false }
             },
             "targets": [
                 {
                     "refId": "C",
-                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"top_services_rollup\") |> filter(fn: (r) => r._field == \"packet_count\" or r._field == \"byte_count\" or r._field == \"flow_count\") |> pivot(rowKey:[\"_time\", \"service\", \"protocol\", \"port\"], columnKey:[\"_field\"], valueColumn:\"_value\") |> sort(columns:[\"byte_count\"], desc:true) |> limit(n: 10)",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"top_services_rollup\") |> filter(fn: (r) => r._field == \"packet_count\" or r._field == \"byte_count\" or r._field == \"flow_count\") |> group(columns: [\"service\", \"protocol\", \"_field\"]) |> sum() |> group() |> pivot(rowKey: [\"service\", \"protocol\"], columnKey: [\"_field\"], valueColumn: \"_value\") |> sort(columns: [\"byte_count\"], desc: true) |> limit(n: 10) |> keep(columns: [\"service\", \"protocol\", \"packet_count\", \"byte_count\", \"flow_count\"])",
                     "resultFormat": "table"
                 }
             ]
@@ -120,27 +401,84 @@
             "id": 4,
             "type": "table",
             "title": "Recent Alerts",
+            "description": "Latest security alerts triggered by the rule engine",
             "datasource": {
                 "type": "influxdb",
                 "uid": "ids-influxdb"
             },
-            "gridPos": {
-                "x": 0,
-                "y": 16,
-                "w": 24,
-                "h": 8
-            },
+            "gridPos": { "x": 0, "y": 20, "w": 24, "h": 8 },
             "fieldConfig": {
                 "defaults": {},
-                "overrides": []
+                "overrides": [
+                    {
+                        "matcher": { "id": "byName", "options": "_time" },
+                        "properties": [
+                            { "id": "displayName", "value": "Time" },
+                            { "id": "unit", "value": "dateTimeAsLocal" }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "severity" },
+                        "properties": [
+                            { "id": "displayName", "value": "Severity" },
+                            { "id": "custom.width", "value": 90 },
+                            { "id": "mappings", "value": [
+                                { "type": "value", "options": { "Critical": { "text": "CRITICAL", "color": "#F2495C" } } },
+                                { "type": "value", "options": { "High": { "text": "HIGH", "color": "#FF9830" } } },
+                                { "type": "value", "options": { "Medium": { "text": "MEDIUM", "color": "#FADE2A" } } },
+                                { "type": "value", "options": { "Low": { "text": "LOW", "color": "#73BF69" } } }
+                            ]},
+                            {
+                                "id": "custom.cellOptions",
+                                "value": { "type": "color-background", "mode": "basic" }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "rule_name" },
+                        "properties": [
+                            { "id": "displayName", "value": "Rule" },
+                            { "id": "custom.width", "value": 150 }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "direction" },
+                        "properties": [
+                            { "id": "displayName", "value": "Direction" },
+                            { "id": "custom.width", "value": 100 }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "src_ip" },
+                        "properties": [
+                            { "id": "displayName", "value": "Source" },
+                            { "id": "custom.width", "value": 130 }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "dst_ip" },
+                        "properties": [
+                            { "id": "displayName", "value": "Destination" },
+                            { "id": "custom.width", "value": 130 }
+                        ]
+                    },
+                    {
+                        "matcher": { "id": "byName", "options": "description" },
+                        "properties": [
+                            { "id": "displayName", "value": "Details" }
+                        ]
+                    }
+                ]
             },
             "options": {
-                "showHeader": true
+                "showHeader": true,
+                "sortBy": [{ "displayName": "Time", "desc": true }],
+                "footer": { "show": false }
             },
             "targets": [
                 {
                     "refId": "D",
-                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"alerts\") |> filter(fn: (r) => r._field == \"src_ip\" or r._field == \"dst_ip\" or r._field == \"description\" or r._field == \"flow_key\") |> pivot(rowKey:[\"_time\", \"rule_name\", \"severity\", \"direction\"], columnKey:[\"_field\"], valueColumn:\"_value\") |> sort(columns:[\"_time\"], desc:true) |> limit(n: 100)",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"alerts\") |> filter(fn: (r) => r._field == \"src_ip\" or r._field == \"dst_ip\" or r._field == \"description\") |> pivot(rowKey: [\"_time\", \"rule_name\", \"severity\", \"direction\"], columnKey: [\"_field\"], valueColumn: \"_value\") |> sort(columns: [\"_time\"], desc: true) |> limit(n: 50) |> keep(columns: [\"_time\", \"severity\", \"rule_name\", \"direction\", \"src_ip\", \"dst_ip\", \"description\"])",
                     "resultFormat": "table"
                 }
             ]
@@ -149,28 +487,34 @@
             "id": 5,
             "type": "piechart",
             "title": "Protocol Distribution",
+            "description": "Traffic share by protocol and direction",
             "datasource": {
                 "type": "influxdb",
                 "uid": "ids-influxdb"
             },
-            "gridPos": {
-                "x": 0,
-                "y": 24,
-                "w": 24,
-                "h": 8
-            },
+            "gridPos": { "x": 0, "y": 28, "w": 24, "h": 8 },
             "fieldConfig": {
-                "defaults": {},
+                "defaults": {
+                    "color": { "mode": "palette-classic" }
+                },
                 "overrides": []
             },
             "options": {
-                "pieType": "pie",
-                "displayLabels": ["name", "value"]
+                "pieType": "donut",
+                "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+                "displayLabels": ["name", "percent"],
+                "legend": {
+                    "showLegend": true,
+                    "displayMode": "table",
+                    "placement": "right",
+                    "values": ["value", "percent"]
+                },
+                "tooltip": { "mode": "single" }
             },
             "targets": [
                 {
                     "refId": "E",
-                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\" and r._field == \"packet_count\") |> group(columns: [\"protocol\", \"direction\"]) |> sum(column: \"_value\")",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"traffic_rollup\" and r._field == \"byte_count\") |> map(fn: (r) => ({r with _field: r.protocol + \" \" + r.direction})) |> keep(columns: [\"_time\", \"_value\", \"_field\"]) |> group(columns: [\"_field\"]) |> sum()",
                     "resultFormat": "time_series"
                 }
             ]

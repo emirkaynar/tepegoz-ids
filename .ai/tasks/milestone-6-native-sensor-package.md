@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress
+Completed
 
 ## Objective
 
@@ -54,26 +54,26 @@ Use the native sensor package as the authoritative runtime path. Keep Docker Com
 
 ### Stage A: Packaging and Service Baseline
 
-- Define package layout, service user, and systemd unit boundaries.
-- Ensure sensor runs without Grafana/Influx dependencies.
+- [x] Define package layout, service user, and systemd unit boundaries.
+- [x] Ensure sensor runs without Grafana/Influx dependencies.
 
 ### Stage B: Dash Command State Machine
 
-- Implement idempotent dashboard setup state model.
-- Persist setup state and credentials references.
-- Ensure no-op behavior on repeated setup attempts.
+- [x] Implement idempotent dashboard setup state model.
+- [x] Persist setup state and credentials references.
+- [x] Ensure no-op behavior on repeated setup attempts.
 
 ### Stage C: Companion Service Provisioning
 
-- Install companion services through native package manager path first.
-- Apply existing declarative datasource/dashboard provisioning files.
-- Add optional documented fallback path if companion install target is unavailable.
+- [x] Install companion services through native package manager path first.
+- [x] Apply existing declarative datasource/dashboard provisioning files.
+- [x] Add optional documented fallback path if companion install target is unavailable.
 
 ### Stage D: Operational Safety
 
-- Guarantee sensor service continuity if dashboard provisioning fails.
-- Provide actionable command output and exit statuses for operators.
-- Validate upgrade and rollback behavior for package and companion stack.
+- [x] Guarantee sensor service continuity if dashboard provisioning fails.
+- [x] Provide actionable command output and exit statuses for operators.
+- [x] Validate upgrade and rollback behavior for package and companion stack.
 
 ## Files in Scope
 

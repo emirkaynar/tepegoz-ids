@@ -156,6 +156,9 @@ def install_bundled_debs(bundle_dir: str) -> bool:
 
 def configure_influxdb() -> Optional[str]:
     print("[Dash] Configuring InfluxDB initial setup...")
+    # 0. Harden: remove existing CLI configs to avoid "config name required" error
+    _run_command(["rm -rf /root/.influxdbv2 /home/*/.influxdbv2"], shell=True)
+    
     # 1. Run initial setup
     setup_res = _run_command([
         "influx", "setup",
@@ -166,6 +169,13 @@ def configure_influxdb() -> Optional[str]:
         "--force"
     ])
     
+    if setup_res.returncode != 0:
+        if "already been set up" in setup_res.stderr or "already been set up" in setup_res.stdout:
+            print("[Dash] InfluxDB instance already initialized, skipping setup pass")
+        else:
+            print("[Dash] InfluxDB setup failed")
+            return None
+
     # 2. Generate an all-access token
     print("[Dash] Generating InfluxDB access token...")
     token_res = _run_command([

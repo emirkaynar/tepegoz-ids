@@ -5,4 +5,4 @@ engine/tepegoz.py /opt/tepegoz-ids/engine/
 engine/config/rules.yaml /etc/tepegoz-ids/
 engine/config/sensor.conf.example /etc/tepegoz-ids/
 debian/tepegoz /usr/bin/
-grafana/* /opt/tepegoz-ids/grafana/
+grafana /opt/tepegoz-ids/

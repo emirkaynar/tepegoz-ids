@@ -41,9 +41,9 @@ def test_summary_aggregator_rolls_up_finalized_flows():
     assert batch.hosts[0].byte_count >= batch.hosts[-1].byte_count
 
     assert len(batch.services) == 3
-    assert any(item.service == "TCP:80" for item in batch.services)
-    assert any(item.service == "UDP:53" for item in batch.services)
-    assert any(item.service == "TCP:443" for item in batch.services)
+    assert any(item.service == "HTTP" for item in batch.services)
+    assert any(item.service == "DNS" for item in batch.services)
+    assert any(item.service == "HTTPS" for item in batch.services)
 
 
 def test_summary_aggregator_resets_after_flush():

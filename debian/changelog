@@ -1,10 +1,22 @@
+tepegoz-ids (0.1.17) unstable; urgency=medium
+
+  * Fix "Service" column in dashboards (shows 'unknown' for some protocols).
+  * Clean up orphaned InfluxDB tasks during startup.
+  * Fix sensor to not send UDP traffic on shutdown.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Sun, 17 May 2026 22:54:00 +0000
+
+tepegoz-ids (0.1.15) unstable; urgency=medium
+
+  * Correctly package Grafana directory contents recursively.
+  * Update sensor to load INFLUXDB_TOKEN from sensor.conf on startup.
+  * Improved cleanup script to stop services before deleting data.
+  * Handled "already set up" error in InfluxDB provisioning.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Sun, 17 May 2026 21:50:00 +0000
+
 tepegoz-ids (0.1.14) unstable; urgency=medium
 
-  * Fix sensor authentication with InfluxDB by correctly loading sensor.conf into the environment.
-
- -- Tepegoz IDS Team <maintainers@tepegoz.local>  Sun, 17 May 2026 21:25:00 +0000
-
-tepegoz-ids (0.1.13) unstable; urgency=medium
 
   * Milestone 6 bootstrap: native package skeleton, CLI scaffolding,
     and initial dash state/orchestration interfaces.

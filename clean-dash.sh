@@ -1,6 +1,9 @@
 #!/bin/bash
 set -x
 
+echo "--- Stopping Services ---"
+sudo systemctl stop influxdb grafana-server 2>/dev/null || true
+
 echo "--- Forcing Removal of Broken Maintainer Scripts ---"
 sudo rm -f /var/lib/dpkg/info/influxdb2.*
 sudo rm -f /var/lib/dpkg/info/grafana.*
@@ -20,6 +23,7 @@ sudo rm -f /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg
 
 echo "--- Cleaning Data and Config Directories ---"
 sudo rm -rf /var/lib/influxdb /etc/influxdb /var/log/influxdb
+sudo rm -rf /root/.influxdbv2 ~/.influxdbv2 /etc/influxdb2
 sudo rm -rf /var/lib/grafana /etc/grafana /var/log/grafana
 sudo rm -f /etc/default/grafana-server /etc/default/influxdb2
 
