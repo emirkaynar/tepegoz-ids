@@ -97,11 +97,11 @@ rules:
       - field: "protocol"
         op: "eq"
         value: "UDP"
-      - field: "packets_per_second"
+      - field: "cross_pps"
         op: "gte"
         value: 500
     description: >-
-      A burst of {packets_per_second:.0f} UDP packets/sec was detected.
+      A burst of {cross_pps:.0f} UDP packets/sec was detected.
       UDP floods are commonly used in denial-of-service attacks because
       UDP does not require a connection handshake, making it easy to
       forge and amplify.
