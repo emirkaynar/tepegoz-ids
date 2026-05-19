@@ -1,5 +1,7 @@
 import yaml
 import time
+import threading
+from collections import defaultdict
 from typing import List, Dict, Any, Optional
 from .contracts import FlowRecord, AlertRecord
 
@@ -14,6 +16,99 @@ _OPS = {
 }
 
 
+class SourceTracker:
+    """
+    Lightweight cross-flow accumulator that tracks per-source-IP
+    statistics over a sliding time window.
+
+    This solves the fundamental issue where attacks spread across many
+    micro-flows (random source ports in SYN floods, different dest ports
+    in port scans) that individually look benign but collectively are
+    malicious.
+    """
+
+    def __init__(self, window_seconds: float = 30.0):
+        self._window = window_seconds
+        self._lock = threading.Lock()
+        # Per source IP: list of (timestamp, dst_port, syn_count, packet_count, byte_count)
+        self._entries: Dict[str, list] = defaultdict(list)
+
+    def record(self, flow: FlowRecord):
+        """Record a finalized flow's stats for its source IP."""
+        entry = (
+            time.time(),
+            flow.dst_port,
+            flow.syn_count,
+            flow.packet_count,
+            flow.byte_count,
+            flow.dst_ip,
+        )
+        with self._lock:
+            self._entries[flow.src_ip].append(entry)
+
+    def get_stats(self, src_ip: str) -> Dict[str, Any]:
+        """
+        Return aggregated stats for a source IP within the time window.
+        Prunes expired entries as a side effect.
+        """
+        cutoff = time.time() - self._window
+        with self._lock:
+            entries = self._entries.get(src_ip, [])
+            # Prune expired
+            active = [e for e in entries if e[0] >= cutoff]
+            self._entries[src_ip] = active
+
+        if not active:
+            return {
+                "cross_unique_dst_ports": 0,
+                "cross_total_syn": 0,
+                "cross_total_packets": 0,
+                "cross_total_bytes": 0,
+                "cross_flow_count": 0,
+                "cross_unique_dst_ips": 0,
+            }
+
+        unique_ports = set()
+        unique_dst_ips = set()
+        total_syn = 0
+        total_packets = 0
+        total_bytes = 0
+
+        for _, dst_port, syn_count, pkt_count, byte_count, dst_ip in active:
+            if dst_port is not None:
+                unique_ports.add(dst_port)
+            unique_dst_ips.add(dst_ip)
+            total_syn += syn_count
+            total_packets += pkt_count
+            total_bytes += byte_count
+
+        elapsed = time.time() - active[0][0]
+        elapsed = max(elapsed, 0.1)  # avoid division by zero
+
+        return {
+            "cross_unique_dst_ports": len(unique_ports),
+            "cross_total_syn": total_syn,
+            "cross_total_packets": total_packets,
+            "cross_total_bytes": total_bytes,
+            "cross_flow_count": len(active),
+            "cross_unique_dst_ips": len(unique_dst_ips),
+            "cross_pps": total_packets / elapsed,
+            "cross_syn_ratio": total_syn / max(total_packets, 1),
+        }
+
+    def cleanup(self):
+        """Remove all expired entries across all IPs."""
+        cutoff = time.time() - self._window
+        with self._lock:
+            empty_keys = []
+            for ip, entries in self._entries.items():
+                self._entries[ip] = [e for e in entries if e[0] >= cutoff]
+                if not self._entries[ip]:
+                    empty_keys.append(ip)
+            for ip in empty_keys:
+                del self._entries[ip]
+
+
 class RuleEngine:
     """
     Schema-driven detection engine that evaluates FlowRecords against
@@ -23,11 +118,16 @@ class RuleEngine:
     logic mode ('all' or 'any').  Virtual fields (avg_packet_size,
     syn_ratio, unique_dst_ports_count, direction) are computed on demand
     from the FlowRecord without requiring upstream changes.
+
+    Cross-flow fields (cross_unique_dst_ports, cross_total_syn, etc.)
+    are provided by the SourceTracker for detecting attacks that spread
+    across many micro-flows.
     """
 
     def __init__(self, config_path: str):
         self.config_path = config_path
         self.rules: List[Dict[str, Any]] = []
+        self.source_tracker = SourceTracker(window_seconds=30.0)
         self.load_rules()
 
     def load_rules(self):
@@ -48,10 +148,12 @@ class RuleEngine:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_context(flow: FlowRecord, direction: str) -> Dict[str, Any]:
+    def _build_context(flow: FlowRecord, direction: str,
+                       cross_stats: Dict[str, Any]) -> Dict[str, Any]:
         """
         Build a flat dict of all fields available for condition evaluation.
-        Includes raw FlowRecord attributes plus computed virtual fields.
+        Includes raw FlowRecord attributes, computed virtuals, and
+        cross-flow aggregates from the SourceTracker.
         """
         pkt = flow.packet_count if flow.packet_count > 0 else 1
 
@@ -69,12 +171,14 @@ class RuleEngine:
             "packets_per_second": flow.packets_per_second,
             "bytes_per_second": flow.bytes_per_second,
             "syn_count": flow.syn_count,
-            # Computed virtual fields
+            # Per-flow computed virtual fields
             "avg_packet_size": flow.byte_count / pkt,
             "syn_ratio": flow.syn_count / pkt,
             "unique_dst_ports_count": len(flow.unique_dst_ports),
             "direction": direction,
         }
+        # Merge cross-flow stats
+        ctx.update(cross_stats)
         return ctx
 
     # ------------------------------------------------------------------
@@ -114,8 +218,15 @@ class RuleEngine:
     def evaluate(self, flow: FlowRecord, direction: str = "unknown") -> List[AlertRecord]:
         """
         Evaluates a finalized flow against all enabled rules.
+        Records the flow into the cross-flow tracker and merges
+        cross-flow stats into the evaluation context.
         """
-        ctx = self._build_context(flow, direction)
+        # Record this flow for cross-flow correlation
+        self.source_tracker.record(flow)
+
+        # Build unified evaluation context
+        cross_stats = self.source_tracker.get_stats(flow.src_ip)
+        ctx = self._build_context(flow, direction, cross_stats)
         alerts: List[AlertRecord] = []
 
         for rule in self.rules:

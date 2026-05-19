@@ -1,42 +1,42 @@
 rules:
   # ---------------------------------------------------------------
-  # Port Scan Detection
+  # Port Scan Detection (cross-flow)
   # ---------------------------------------------------------------
   - name: "Port Scan"
     enabled: true
     severity: "High"
     logic: "all"
     conditions:
-      - field: "unique_dst_ports_count"
+      - field: "cross_unique_dst_ports"
         op: "gte"
         value: 20
     description: >-
-      A single device tried to connect to {unique_dst_ports_count} different
-      ports on the target — this usually means someone is scanning the network
-      to find open services they can exploit.
+      A single device tried to connect to {cross_unique_dst_ports} different
+      ports in the last 30 seconds — this usually means someone is scanning
+      the network to find open services they can exploit.
 
   # ---------------------------------------------------------------
-  # SYN Flood (TCP Handshake Abuse)
+  # SYN Flood (cross-flow)
   # ---------------------------------------------------------------
   - name: "DoS SYN Flood"
     enabled: true
     severity: "Critical"
     logic: "all"
     conditions:
-      - field: "syn_ratio"
+      - field: "cross_syn_ratio"
         op: "gte"
         value: 0.8
-      - field: "packets_per_second"
+      - field: "cross_pps"
         op: "gte"
         value: 100
     description: >-
-      {syn_ratio:.0%} of packets are connection-request (SYN) packets at
-      {packets_per_second:.0f} packets/sec — normal traffic has a low SYN ratio,
-      so this looks like a denial-of-service attack flooding the target with
-      fake connection attempts.
+      {cross_syn_ratio:.0%} of packets from this source are connection-request
+      (SYN) packets at {cross_pps:.0f} packets/sec across {cross_flow_count}
+      flows — this looks like a denial-of-service attack flooding the target
+      with fake connection attempts.
 
   # ---------------------------------------------------------------
-  # Generic Volumetric Flood
+  # Generic Volumetric Flood (per-flow or cross-flow)
   # ---------------------------------------------------------------
   - name: "Volumetric Flood"
     enabled: true
@@ -49,9 +49,12 @@ rules:
       - field: "bytes_per_second"
         op: "gte"
         value: 5000000
+      - field: "cross_pps"
+        op: "gte"
+        value: 5000
     description: >-
-      Traffic from this source hit {packets_per_second:.0f} packets/sec or
-      {bytes_per_second:.0f} bytes/sec — this volume is unusually high and may
+      Traffic from this source hit {cross_pps:.0f} packets/sec across
+      {cross_flow_count} flows — this volume is unusually high and may
       indicate a flood attack designed to overwhelm the network.
 
   # ---------------------------------------------------------------

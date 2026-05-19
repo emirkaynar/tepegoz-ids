@@ -14,23 +14,23 @@ rules:
     severity: "High"
     logic: "all"
     conditions:
-      - field: "unique_dst_ports_count"
+      - field: "cross_unique_dst_ports"
         op: "gte"
         value: 5
-    description: "Scanned {unique_dst_ports_count} ports"
+    description: "Scanned {cross_unique_dst_ports} ports"
 
   - name: "DoS SYN Flood"
     enabled: true
     severity: "Critical"
     logic: "all"
     conditions:
-      - field: "syn_ratio"
+      - field: "cross_syn_ratio"
         op: "gte"
         value: 0.8
-      - field: "packets_per_second"
+      - field: "cross_pps"
         op: "gte"
         value: 10
-    description: "SYN ratio {syn_ratio:.2f} at {packets_per_second:.1f} pps"
+    description: "Cross-flow SYN ratio {cross_syn_ratio:.2f} at {cross_pps:.0f} pps"
 
   - name: "Volumetric Flood"
     enabled: true
@@ -113,85 +113,122 @@ def _flow(src_ip="1.1.1.1", dst_ip="2.2.2.2", protocol="TCP",
 
 
 # ------------------------------------------------------------------
-# Existing detection behaviour preserved
+# Cross-flow: Port Scan
 # ------------------------------------------------------------------
 
-def test_port_scan_detection(rule_engine):
-    flow = _flow(unique_dst_ports={80, 81, 82, 83, 84, 85})
-    alerts = rule_engine.evaluate(flow, "outbound")
-    assert len(alerts) >= 1
+def test_port_scan_detection_cross_flow(rule_engine):
+    """Port scan across 6 separate flows (each with 1 unique port) should trigger."""
+    for port in range(80, 86):
+        flow = _flow(src_ip="1.1.1.1", dst_port=port, src_port=40000 + port)
+        alerts = rule_engine.evaluate(flow, "outbound")
+
+    # After 6 flows from same src_ip, cross_unique_dst_ports = 6 >= 5
     assert any(a.rule_name == "Port Scan" for a in alerts)
-    assert "6" in alerts[0].description  # unique port count rendered
 
 
-def test_syn_flood_detection(rule_engine):
-    flow = _flow(packets=20, syn_count=18, duration=1.0)
-    alerts = rule_engine.evaluate(flow, "inbound")
+def test_port_scan_does_not_trigger_on_single_flow(rule_engine):
+    """A single flow to one port should not trigger port scan."""
+    flow = _flow(src_ip="9.9.9.9", dst_port=80)
+    alerts = rule_engine.evaluate(flow, "outbound")
+    assert not any(a.rule_name == "Port Scan" for a in alerts)
+
+
+# ------------------------------------------------------------------
+# Cross-flow: SYN Flood
+# ------------------------------------------------------------------
+
+def test_syn_flood_cross_flow(rule_engine):
+    """Many short SYN-only flows from the same source should trigger."""
+    alerts = []
+    for i in range(20):
+        flow = _flow(
+            src_ip="3.3.3.3", dst_ip="2.2.2.2", dst_port=80,
+            src_port=50000 + i, packets=1, bytes_count=60,
+            duration=0.0, syn_count=1,
+        )
+        alerts = rule_engine.evaluate(flow, "inbound")
+
+    # cross_total_syn=20, cross_total_packets=20, ratio=1.0, cross_pps > 10
     assert any(a.rule_name == "DoS SYN Flood" for a in alerts)
 
 
-def test_benign_flow(rule_engine):
-    flow = _flow(packets=10, bytes_count=1000, duration=10.0, syn_count=1)
-    alerts = rule_engine.evaluate(flow, "internal")
-    assert len(alerts) == 0
-
-
 # ------------------------------------------------------------------
-# New detection patterns
+# Per-flow: Volumetric
 # ------------------------------------------------------------------
 
 def test_volumetric_any_logic_pps(rule_engine):
     """Volumetric uses 'any' logic — only PPS threshold exceeded."""
-    flow = _flow(packets=2000, bytes_count=2000, duration=1.0)
+    flow = _flow(src_ip="4.4.4.4", packets=2000, bytes_count=2000, duration=1.0)
     alerts = rule_engine.evaluate(flow, "inbound")
     assert any(a.rule_name == "Volumetric Flood" for a in alerts)
 
 
 def test_volumetric_any_logic_bps(rule_engine):
     """Volumetric uses 'any' logic — only BPS threshold exceeded."""
-    flow = _flow(packets=10, bytes_count=10000000, duration=1.0)
+    flow = _flow(src_ip="5.5.5.5", packets=10, bytes_count=10000000, duration=1.0)
     alerts = rule_engine.evaluate(flow, "inbound")
     assert any(a.rule_name == "Volumetric Flood" for a in alerts)
 
 
+# ------------------------------------------------------------------
+# Per-flow: UDP Flood
+# ------------------------------------------------------------------
+
 def test_udp_flood_detection(rule_engine):
-    flow = _flow(protocol="UDP", packets=600, bytes_count=60000, duration=1.0)
+    flow = _flow(src_ip="6.6.6.6", protocol="UDP", packets=600, bytes_count=60000, duration=1.0)
     alerts = rule_engine.evaluate(flow, "inbound")
     assert any(a.rule_name == "UDP Flood" for a in alerts)
 
 
 def test_udp_flood_does_not_trigger_on_tcp(rule_engine):
     """UDP Flood rule should not fire for TCP traffic."""
-    flow = _flow(protocol="TCP", packets=600, bytes_count=60000, duration=1.0)
+    flow = _flow(src_ip="7.7.7.7", protocol="TCP", packets=600, bytes_count=60000, duration=1.0)
     alerts = rule_engine.evaluate(flow, "inbound")
     assert not any(a.rule_name == "UDP Flood" for a in alerts)
 
 
+# ------------------------------------------------------------------
+# Direction-based
+# ------------------------------------------------------------------
+
 def test_direction_based_exfil(rule_engine):
-    flow = _flow(bytes_count=2000000, duration=60.0, packets=500)
+    flow = _flow(src_ip="8.8.8.8", bytes_count=2000000, duration=60.0, packets=500)
     alerts = rule_engine.evaluate(flow, "outbound")
     assert any(a.rule_name == "Outbound Exfil" for a in alerts)
 
 
 def test_direction_based_exfil_not_inbound(rule_engine):
     """Exfil rule should not fire for inbound traffic."""
-    flow = _flow(bytes_count=2000000, duration=60.0, packets=500)
+    flow = _flow(src_ip="10.10.10.10", bytes_count=2000000, duration=60.0, packets=500)
     alerts = rule_engine.evaluate(flow, "inbound")
     assert not any(a.rule_name == "Outbound Exfil" for a in alerts)
 
 
+# ------------------------------------------------------------------
+# Misc
+# ------------------------------------------------------------------
+
 def test_disabled_rule_does_not_fire(rule_engine):
-    flow = _flow(packets=100)
+    flow = _flow(src_ip="11.11.11.11", packets=100)
     alerts = rule_engine.evaluate(flow, "outbound")
     assert not any(a.rule_name == "Disabled Rule" for a in alerts)
 
 
+def test_benign_flow(rule_engine):
+    flow = _flow(
+        src_ip="12.12.12.12", packets=10, bytes_count=1000,
+        duration=10.0, syn_count=1,
+    )
+    alerts = rule_engine.evaluate(flow, "internal")
+    assert len(alerts) == 0
+
+
 def test_description_template_renders(rule_engine):
-    """Verify that template placeholders in descriptions are filled."""
-    flow = _flow(packets=20, syn_count=18, duration=1.0)
-    alerts = rule_engine.evaluate(flow, "inbound")
-    syn_alerts = [a for a in alerts if a.rule_name == "DoS SYN Flood"]
-    assert len(syn_alerts) == 1
-    # Template should have rendered the syn_ratio and pps values
-    assert "0.90" in syn_alerts[0].description
-    assert "20.0" in syn_alerts[0].description
+    """Verify cross-flow template placeholders are filled."""
+    for port in range(80, 86):
+        flow = _flow(src_ip="13.13.13.13", dst_port=port, src_port=40000 + port)
+        alerts = rule_engine.evaluate(flow, "outbound")
+
+    scan_alerts = [a for a in alerts if a.rule_name == "Port Scan"]
+    assert len(scan_alerts) == 1
+    assert "6" in scan_alerts[0].description
