@@ -1,3 +1,13 @@
+tepegoz-ids (0.2.2) unstable; urgency=medium
+
+  * Eliminate return-traffic false positives in Port Scan detection:
+    - Restrict syn_count increments to pure SYN packets (excluding SYN-ACK).
+    - Track flow protocol in SourceTracker.
+    - Ignore TCP return flows (syn_count == 0) when computing unique destination ports.
+    - Add EXCLUDE_PORTS configuration support in sensor.conf, defaulting to 32768-60999.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 00:10:00 +0300
+
 tepegoz-ids (0.2.1) unstable; urgency=medium
 
   * Fix alert database-to-UI pipeline:

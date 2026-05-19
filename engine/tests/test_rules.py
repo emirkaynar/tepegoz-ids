@@ -261,3 +261,47 @@ rules:
     assert len(alerts1) == 1  # First fires
     assert len(alerts2) == 0  # Second is suppressed by cooldown
 
+
+def test_parse_ports_csv():
+    from core.rules import parse_ports_csv
+    assert parse_ports_csv("80,443") == {80, 443}
+    assert parse_ports_csv("8000-8005,9000") == {8000, 8001, 8002, 8003, 8004, 8005, 9000}
+    assert parse_ports_csv("") == set()
+
+
+def test_port_scan_filtering_ephemeral_and_flag_aware(tmp_path):
+    """Verify that EXCLUDE_PORTS and syn_count=0 (TCP return traffic) are filtered out of port scans."""
+    config_file = tmp_path / "rules_exclude.yaml"
+    config_file.write_text("""
+rules:
+  - name: "Port Scan"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    conditions:
+      - field: "cross_unique_dst_ports"
+        op: "gte"
+        value: 3
+    description: "Scanned {cross_unique_dst_ports} ports"
+""")
+    # Exclude ports 8000 and 8080
+    engine = RuleEngine(str(config_file), cooldown_seconds=0, exclude_ports={8000, 8080})
+
+    # Scenario A: Flow to excluded port (8000) -> should not count
+    flow1 = _flow(src_ip="20.20.20.20", dst_port=8000, syn_count=1)
+    alerts = engine.evaluate(flow1, "inbound")
+    assert len(alerts) == 0
+
+    # Scenario B: TCP return traffic flow (syn_count=0, e.g. on port 9001) -> should not count
+    flow2 = _flow(src_ip="20.20.20.20", dst_port=9001, syn_count=0)
+    alerts = engine.evaluate(flow2, "inbound")
+    assert len(alerts) == 0
+
+    # Scenario C: Flows to allowed ports with syn_count=1 -> should trigger after 3 unique ports
+    for port in [80, 443, 22]:
+        flow = _flow(src_ip="20.20.20.20", dst_port=port, syn_count=1)
+        alerts = engine.evaluate(flow, "inbound")
+    
+    assert any(a.rule_name == "Port Scan" for a in alerts)
+
+

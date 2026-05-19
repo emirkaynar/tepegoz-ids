@@ -29,9 +29,12 @@ def main():
     rules_config = get_setting("RULES_CONFIG_PATH", "config/rules.yaml", config_path)
     auto_detect_container_nets = get_bool_setting("AUTO_DETECT_CONTAINER_NETS", True, config_path)
     suppress_excluded_internal = get_bool_setting("SUPPRESS_EXCLUDED_INTERNAL", True, config_path)
+    exclude_ports_csv = get_setting("EXCLUDE_PORTS", "32768-60999", config_path)
     
     # Initialize components
-    rule_engine = RuleEngine(config_path=rules_config)
+    from core.rules import parse_ports_csv
+    exclude_ports = parse_ports_csv(exclude_ports_csv)
+    rule_engine = RuleEngine(config_path=rules_config, exclude_ports=exclude_ports)
     db_manager = DatabaseManager()
     processor = FlowProcessor(idle_timeout=idle_timeout, max_duration=max_duration)
     summary_aggregator = SummaryAggregator(top_k=10)

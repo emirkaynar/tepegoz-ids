@@ -30,8 +30,8 @@ class FlowProcessor:
             flow.last_seen = packet.timestamp
             flow.duration = flow.last_seen - flow.start_time
             
-            # Update metrics for rules
-            if 'S' in packet.flags:
+            # Update metrics for rules (only count pure SYN packets, ignoring SYN-ACK responses)
+            if 'S' in packet.flags and 'A' not in packet.flags:
                 flow.syn_count += 1
             if packet.dst_port:
                 flow.unique_dst_ports.add(packet.dst_port)
@@ -58,7 +58,7 @@ class FlowProcessor:
                 packets_per_second=0.0,
                 bytes_per_second=0.0,
                 is_finalized=False,
-                syn_count=1 if 'S' in packet.flags else 0,
+                syn_count=1 if ('S' in packet.flags and 'A' not in packet.flags) else 0,
                 unique_dst_ports={packet.dst_port} if packet.dst_port else set()
             )
             self.active_flows[flow_key] = new_flow

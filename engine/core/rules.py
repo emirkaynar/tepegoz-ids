@@ -16,6 +16,39 @@ _OPS = {
 }
 
 
+def parse_ports_csv(value: str) -> set:
+    """
+    Parse a comma-separated list of ports and port ranges (e.g. '80,8000-8080,32768-60999')
+    into a set of integers.
+    """
+    ports = set()
+    if not value:
+        return ports
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            try:
+                start_str, end_str = part.split("-", 1)
+                start = int(start_str.strip())
+                end = int(end_str.strip())
+                start = max(1, min(start, 65535))
+                end = max(1, min(end, 65535))
+                if start <= end:
+                    ports.update(range(start, end + 1))
+            except ValueError:
+                continue
+        else:
+            try:
+                port = int(part)
+                if 1 <= port <= 65535:
+                    ports.add(port)
+            except ValueError:
+                continue
+    return ports
+
+
 class SourceTracker:
     """
     Lightweight cross-flow accumulator that tracks per-source-IP
@@ -27,10 +60,11 @@ class SourceTracker:
     malicious.
     """
 
-    def __init__(self, window_seconds: float = 30.0):
+    def __init__(self, window_seconds: float = 30.0, exclude_ports: set = None):
         self._window = window_seconds
         self._lock = threading.Lock()
-        # Per source IP: list of (timestamp, dst_port, syn_count, packet_count, byte_count)
+        self.exclude_ports = exclude_ports or set()
+        # Per source IP: list of (timestamp, dst_port, syn_count, packet_count, byte_count, dst_ip, protocol)
         self._entries: Dict[str, list] = defaultdict(list)
 
     def record(self, flow: FlowRecord):
@@ -42,6 +76,7 @@ class SourceTracker:
             flow.packet_count,
             flow.byte_count,
             flow.dst_ip,
+            flow.protocol,
         )
         with self._lock:
             self._entries[flow.src_ip].append(entry)
@@ -74,9 +109,12 @@ class SourceTracker:
         total_packets = 0
         total_bytes = 0
 
-        for _, dst_port, syn_count, pkt_count, byte_count, dst_ip in active:
-            if dst_port is not None:
-                unique_ports.add(dst_port)
+        for _, dst_port, syn_count, pkt_count, byte_count, dst_ip, protocol in active:
+            if dst_port is not None and dst_port not in self.exclude_ports:
+                # For TCP, only count ports where connection was initiated (syn_count > 0).
+                # This filters out server responses to client ephemeral ports.
+                if protocol != "TCP" or syn_count > 0:
+                    unique_ports.add(dst_port)
             unique_dst_ips.add(dst_ip)
             total_syn += syn_count
             total_packets += pkt_count
@@ -84,7 +122,7 @@ class SourceTracker:
 
         elapsed = time.time() - active[0][0]
         elapsed = max(elapsed, 0.1)  # avoid division by zero
-
+        
         return {
             "cross_unique_dst_ports": len(unique_ports),
             "cross_total_syn": total_syn,
@@ -124,10 +162,10 @@ class RuleEngine:
     across many micro-flows.
     """
 
-    def __init__(self, config_path: str, cooldown_seconds: float = 30.0):
+    def __init__(self, config_path: str, cooldown_seconds: float = 30.0, exclude_ports: set = None):
         self.config_path = config_path
         self.rules: List[Dict[str, Any]] = []
-        self.source_tracker = SourceTracker(window_seconds=30.0)
+        self.source_tracker = SourceTracker(window_seconds=30.0, exclude_ports=exclude_ports)
         self._cooldown_seconds = cooldown_seconds
         # (rule_name, src_ip) -> last_alert_timestamp
         self._alert_cooldowns: Dict[tuple, float] = {}
