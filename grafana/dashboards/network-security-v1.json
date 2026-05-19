@@ -499,7 +499,7 @@
             "targets": [
                 {
                     "refId": "D",
-                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"alerts\" and (\"${rule_name}\" == \"All\" or r.rule_name == \"${rule_name}\")) |> filter(fn: (r) => r._field == \"src_ip\" or r._field == \"dst_ip\" or r._field == \"description\") |> pivot(rowKey: [\"_time\", \"rule_name\", \"severity\", \"direction\"], columnKey: [\"_field\"], valueColumn: \"_value\") |> sort(columns: [\"_time\"], desc: true) |> limit(n: 50) |> keep(columns: [\"_time\", \"rule_name\", \"severity\", \"direction\", \"src_ip\", \"dst_ip\", \"description\"])",
+                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"alerts\" and (\"${rule_name}\" == \"All\" or r.rule_name == \"${rule_name}\")) |> filter(fn: (r) => r._field == \"src_ip\" or r._field == \"dst_ip\" or r._field == \"description\") |> pivot(rowKey: [\"_time\", \"rule_name\", \"severity\", \"direction\"], columnKey: [\"_field\"], valueColumn: \"_value\") |> group() |> sort(columns: [\"_time\"], desc: true) |> limit(n: 50) |> keep(columns: [\"_time\", \"rule_name\", \"severity\", \"direction\", \"src_ip\", \"dst_ip\", \"description\"])",
                     "resultFormat": "table"
                 }
             ]
