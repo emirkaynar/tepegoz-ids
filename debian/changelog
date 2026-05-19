@@ -1,3 +1,12 @@
+tepegoz-ids (0.2.1) unstable; urgency=medium
+
+  * Fix alert database-to-UI pipeline:
+    - Pass evaluated direction parameter to AlertRecord.
+    - Inject default values for direction, severity, and rule_name tags in Flux query.
+    - Prevent query failures due to database schema changes or empty fields.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Tue, 19 May 2026 22:20:00 +0300
+
 tepegoz-ids (0.2.0) unstable; urgency=medium
 
   * Schema-driven rule engine: rules defined entirely in YAML (field/op/value).

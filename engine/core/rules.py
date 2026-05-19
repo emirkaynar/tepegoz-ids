@@ -277,7 +277,7 @@ class RuleEngine:
                     dst_ip=flow.dst_ip,
                     description=reason,
                     flow_key=flow.flow_key,
-                    direction="unknown"
+                    direction=direction
                 )
                 alerts.append(alert)
 
