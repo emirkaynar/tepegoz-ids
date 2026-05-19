@@ -1,3 +1,12 @@
+tepegoz-ids (0.2.4) unstable; urgency=medium
+
+  * Align sniffer packet timestamps with Python system clock to prevent
+    premature flow expiration and restore accurate volumetric rate calculations.
+  * Clean up Grafana Protocol Distribution pie chart legend by stripping
+    the "_value" column prefix.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 01:05:00 +0300
+
 tepegoz-ids (0.2.3) unstable; urgency=medium
 
   * Refine Volumetric Flood alerts to prevent micro-flow rate-spike false positives:

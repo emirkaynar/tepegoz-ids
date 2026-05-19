@@ -42,7 +42,7 @@ class PacketSniffer:
         if not IP in packet:
             return
 
-        timestamp = float(packet.time)
+        timestamp = time.time()
         src_ip = packet[IP].src
         dst_ip = packet[IP].dst
         protocol = "OTHER"

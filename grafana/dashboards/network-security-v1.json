@@ -522,7 +522,8 @@
             "gridPos": { "x": 0, "y": 28, "w": 24, "h": 8 },
             "fieldConfig": {
                 "defaults": {
-                    "color": { "mode": "palette-classic" }
+                    "color": { "mode": "palette-classic" },
+                    "displayName": "${__series.labels._field}"
                 },
                 "overrides": []
             },
