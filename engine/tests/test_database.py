@@ -31,7 +31,7 @@ class FakeInfluxDBClient:
         self.closed = False
         FakeInfluxDBClient.last_instance = self
 
-    def write_api(self, write_options):
+    def write_api(self, write_options, **kwargs):
         api = FakeWriteAPI()
         self.write_api_calls.append((write_options, api))
         return api

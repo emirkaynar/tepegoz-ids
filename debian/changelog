@@ -1,3 +1,13 @@
+tepegoz-ids (0.2.5) unstable; urgency=medium
+
+  * Fix FlowProcessor thread-safety by adding Lock synchronization.
+  * Remove 30-second alert cooldown suppression rule for real-time alerting.
+  * Set default FLOW_MAX_DURATION to 600.0s to align with detection rule thresholds.
+  * Add error logging callback to async database writes.
+  * Clean up Grafana Throughput, Packet Rate, and Protocol Distribution legends/KPI queries.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 01:21:00 +0300
+
 tepegoz-ids (0.2.4) unstable; urgency=medium
 
   * Align sniffer packet timestamps with Python system clock to prevent

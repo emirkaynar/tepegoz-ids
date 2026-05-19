@@ -291,14 +291,7 @@ class RuleEngine:
 
             if triggered:
                 rule_name = rule.get('name', 'Unknown')
-                cooldown_key = (rule_name, flow.src_ip)
                 now = time.time()
-
-                # Suppress duplicate alerts within the cooldown window
-                last_fired = self._alert_cooldowns.get(cooldown_key, 0)
-                if now - last_fired < self._cooldown_seconds:
-                    continue
-                self._alert_cooldowns[cooldown_key] = now
 
                 # Build description from template with context values
                 desc_template = rule.get('description', '')

@@ -260,32 +260,6 @@ def test_description_template_renders(rule_engine):
     assert "6" in scan_alerts[0].description
 
 
-def test_cooldown_suppresses_duplicate_alerts(tmp_path):
-    """With cooldown enabled, the same rule+src_ip should not fire twice."""
-    config_file = tmp_path / "rules_cd.yaml"
-    config_file.write_text("""
-rules:
-  - name: "Test Rule"
-    enabled: true
-    severity: "High"
-    logic: "all"
-    conditions:
-      - field: "packet_count"
-        op: "gte"
-        value: 1
-    description: "Test"
-""")
-    engine = RuleEngine(str(config_file), cooldown_seconds=60.0)
-
-    flow1 = _flow(src_ip="99.99.99.99", packets=5)
-    flow2 = _flow(src_ip="99.99.99.99", packets=10)
-
-    alerts1 = engine.evaluate(flow1, "inbound")
-    alerts2 = engine.evaluate(flow2, "inbound")
-
-    assert len(alerts1) == 1  # First fires
-    assert len(alerts2) == 0  # Second is suppressed by cooldown
-
 
 def test_parse_ports_csv():
     from core.rules import parse_ports_csv

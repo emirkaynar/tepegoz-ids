@@ -27,7 +27,7 @@ def handle_dash(args):
         print("Usage: tepegoz dash <setup|on|off|status>")
         return 2
 
-    if os.geteuid() != 0:
+    if hasattr(os, "geteuid") and os.geteuid() != 0:
         print("Error: 'tepegoz dash' commands must be run with sudo.")
         return 1
 

@@ -35,12 +35,18 @@ class DatabaseManager:
 
         try:
             self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
+            def on_write_error(conf, data, exception):
+                self.failed_flow_writes += 1
+                if self.failed_flow_writes == 1 or self.failed_flow_writes % 100 == 0:
+                    print(f"[DatabaseManager] Async flow metric write failed ({self.failed_flow_writes}): {exception}")
+
             # Metrics are buffered in batches to reduce I/O overhead.
             self.metrics_write_api = self.client.write_api(
                 write_options=WriteOptions(
                     batch_size=self.metrics_batch_size,
                     flush_interval=self.metrics_flush_interval_ms,
-                )
+                ),
+                error_callback=on_write_error
             )
             # Alerts are written immediately for low-latency operational visibility.
             self.alerts_write_api = self.client.write_api(write_options=SYNCHRONOUS)
