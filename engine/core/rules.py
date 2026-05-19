@@ -124,10 +124,13 @@ class RuleEngine:
     across many micro-flows.
     """
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, cooldown_seconds: float = 30.0):
         self.config_path = config_path
         self.rules: List[Dict[str, Any]] = []
         self.source_tracker = SourceTracker(window_seconds=30.0)
+        self._cooldown_seconds = cooldown_seconds
+        # (rule_name, src_ip) -> last_alert_timestamp
+        self._alert_cooldowns: Dict[tuple, float] = {}
         self.load_rules()
 
     def load_rules(self):
@@ -249,6 +252,16 @@ class RuleEngine:
                 )
 
             if triggered:
+                rule_name = rule.get('name', 'Unknown')
+                cooldown_key = (rule_name, flow.src_ip)
+                now = time.time()
+
+                # Suppress duplicate alerts within the cooldown window
+                last_fired = self._alert_cooldowns.get(cooldown_key, 0)
+                if now - last_fired < self._cooldown_seconds:
+                    continue
+                self._alert_cooldowns[cooldown_key] = now
+
                 # Build description from template with context values
                 desc_template = rule.get('description', '')
                 try:
@@ -257,8 +270,8 @@ class RuleEngine:
                     reason = desc_template
 
                 alert = AlertRecord(
-                    timestamp=time.time(),
-                    rule_name=rule.get('name', 'Unknown'),
+                    timestamp=now,
+                    rule_name=rule_name,
                     severity=rule.get('severity', 'Medium'),
                     src_ip=flow.src_ip,
                     dst_ip=flow.dst_ip,
