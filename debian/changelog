@@ -1,3 +1,15 @@
+tepegoz-ids (0.2.0) unstable; urgency=medium
+
+  * Schema-driven rule engine: rules defined entirely in YAML (field/op/value).
+  * Cross-flow correlation: detects port scans and SYN floods across micro-flows.
+  * Alert cooldown: suppresses duplicate alerts per rule+source for 30 seconds.
+  * Dashboard: rule name dropdown filter, column reorder, severity color-coding.
+  * 5 new detection rules: UDP Flood, DNS Amplification, C2 Beacon,
+    Data Exfiltration, Suspicious Long Flow.
+  * Direction passed to rule engine for directional detection.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Mon, 19 May 2026 20:10:00 +0000
+
 tepegoz-ids (0.1.17) unstable; urgency=medium
 
   * Fix "Service" column in dashboards (shows 'unknown' for some protocols).
