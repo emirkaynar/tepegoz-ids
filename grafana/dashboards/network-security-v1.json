@@ -496,10 +496,16 @@
                 "sortBy": [{ "displayName": "Time", "desc": true }],
                 "footer": { "show": false }
             },
+            "transformations": [
+                {
+                    "id": "merge",
+                    "options": {}
+                }
+            ],
             "targets": [
                 {
                     "refId": "D",
-                    "query": "from(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"alerts\" and (\"${rule_name}\" == \"All\" or r.rule_name == \"${rule_name}\")) |> filter(fn: (r) => r._field == \"src_ip\" or r._field == \"dst_ip\" or r._field == \"description\") |> default(column: \"direction\", value: \"unknown\") |> default(column: \"severity\", value: \"Medium\") |> default(column: \"rule_name\", value: \"Unknown\") |> pivot(rowKey: [\"_time\", \"rule_name\", \"severity\", \"direction\"], columnKey: [\"_field\"], valueColumn: \"_value\") |> group() |> sort(columns: [\"_time\"], desc: true) |> limit(n: 50) |> drop(columns: [\"_measurement\", \"_start\", \"_stop\"])",
+                    "query": "import \"influxdata/influxdb/schema\"\nfrom(bucket: \"ids_data\") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r._measurement == \"alerts\" and (\"${rule_name}\" == \"All\" or r.rule_name == \"${rule_name}\")) |> filter(fn: (r) => r._field == \"src_ip\" or r._field == \"dst_ip\" or r._field == \"description\") |> schema.fieldsAsCols() |> group() |> sort(columns: [\"_time\"], desc: true) |> limit(n: 50) |> drop(columns: [\"_measurement\", \"_start\", \"_stop\"])",
                     "resultFormat": "table"
                 }
             ]
