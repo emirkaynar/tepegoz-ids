@@ -70,7 +70,7 @@ class SourceTracker:
     def record(self, flow: FlowRecord):
         """Record a finalized flow's stats for its source IP."""
         entry = (
-            time.time(),
+            flow.last_seen,
             flow.dst_port,
             flow.syn_count,
             flow.packet_count,
@@ -101,6 +101,9 @@ class SourceTracker:
                 "cross_total_bytes": 0,
                 "cross_flow_count": 0,
                 "cross_unique_dst_ips": 0,
+                "cross_pps": 0.0,
+                "cross_bps": 0.0,
+                "cross_syn_ratio": 0.0,
             }
 
         unique_ports = set()
@@ -131,6 +134,7 @@ class SourceTracker:
             "cross_flow_count": len(active),
             "cross_unique_dst_ips": len(unique_dst_ips),
             "cross_pps": total_packets / elapsed,
+            "cross_bps": total_bytes / elapsed,
             "cross_syn_ratio": total_syn / max(total_packets, 1),
         }
 

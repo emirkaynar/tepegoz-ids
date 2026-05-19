@@ -5,6 +5,9 @@ tepegoz-ids (0.2.5) unstable; urgency=medium
   * Set default FLOW_MAX_DURATION to 600.0s to align with detection rule thresholds.
   * Add error logging callback to async database writes.
   * Clean up Grafana Throughput, Packet Rate, and Protocol Distribution legends/KPI queries.
+  * Migrate all volumetric, UDP flood, and DNS amplification rules to use cross-flow metrics.
+  * Correct SourceTracker timeline calculation by recording flow.last_seen instead of time.time().
+  * Add cross_bps metric to track total bytes per second per source IP.
 
  -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 01:21:00 +0300
 
