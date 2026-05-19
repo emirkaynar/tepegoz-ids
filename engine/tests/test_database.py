@@ -75,6 +75,7 @@ def _sample_alert():
         dst_ip="10.0.0.2",
         description="SYN ratio exceeded threshold",
         flow_key="10.0.0.1:1234->10.0.0.2:80|TCP",
+        direction="unknown",
     )
 
 

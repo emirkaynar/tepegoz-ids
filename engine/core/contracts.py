@@ -52,7 +52,7 @@ class AlertRecord:
     """
     Structured detection output produced by the rule engine.
     """
-    __slots__ = ['timestamp', 'rule_name', 'severity', 'src_ip', 'dst_ip', 'description', 'flow_key']
+    __slots__ = ['timestamp', 'rule_name', 'severity', 'direction', 'src_ip', 'dst_ip', 'description', 'flow_key']
     
     timestamp: float
     rule_name: str
@@ -61,6 +61,7 @@ class AlertRecord:
     dst_ip: str
     description: str
     flow_key: str
+    direction: str
 
 @dataclass
 class TrafficSummaryRecord:
