@@ -1,3 +1,11 @@
+tepegoz-ids (0.2.3) unstable; urgency=medium
+
+  * Refine Volumetric Flood alerts to prevent micro-flow rate-spike false positives:
+    - Split generic Volumetric Flood rule into PPS, Bps, and Cross-Flow rules.
+    - Set logic to 'all' to enforce minimum packet count, byte count, and flow count thresholds.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 00:30:00 +0300
+
 tepegoz-ids (0.2.2) unstable; urgency=medium
 
   * Eliminate return-traffic false positives in Port Scan detection:

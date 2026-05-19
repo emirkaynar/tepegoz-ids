@@ -36,26 +36,55 @@ rules:
       with fake connection attempts.
 
   # ---------------------------------------------------------------
-  # Generic Volumetric Flood (per-flow or cross-flow)
+  # Generic Volumetric Flood (High packets-per-second rate)
   # ---------------------------------------------------------------
-  - name: "Volumetric Flood"
+  - name: "Volumetric Flood (PPS)"
     enabled: true
     severity: "Medium"
-    logic: "any"
+    logic: "all"
     conditions:
       - field: "packets_per_second"
         op: "gte"
-        value: 1000
+        value: 2000
+      - field: "packet_count"
+        op: "gte"
+        value: 500
+    description: >-
+      High packet rate detected: {packets_per_second:.0f} packets/sec over a flow of {packet_count} packets.
+
+  # ---------------------------------------------------------------
+  # Generic Volumetric Flood (High bandwidth usage)
+  # ---------------------------------------------------------------
+  - name: "Volumetric Flood (Bps)"
+    enabled: true
+    severity: "Medium"
+    logic: "all"
+    conditions:
       - field: "bytes_per_second"
         op: "gte"
         value: 5000000
+      - field: "byte_count"
+        op: "gte"
+        value: 10000000
+    description: >-
+      High bandwidth usage detected: {bytes_per_second:.1f} bytes/sec (total {byte_count} bytes).
+
+  # ---------------------------------------------------------------
+  # Generic Volumetric Flood (Distributed/Cross-flow high packet rate)
+  # ---------------------------------------------------------------
+  - name: "Volumetric Flood (Cross-Flow)"
+    enabled: true
+    severity: "Medium"
+    logic: "all"
+    conditions:
       - field: "cross_pps"
         op: "gte"
         value: 5000
+      - field: "cross_flow_count"
+        op: "gte"
+        value: 50
     description: >-
-      Traffic from this source hit {cross_pps:.0f} packets/sec across
-      {cross_flow_count} flows — this volume is unusually high and may
-      indicate a flood attack designed to overwhelm the network.
+      High cross-flow packet rate detected: {cross_pps:.0f} packets/sec across {cross_flow_count} flows.
 
   # ---------------------------------------------------------------
   # UDP Flood

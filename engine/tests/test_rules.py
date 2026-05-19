@@ -32,18 +32,31 @@ rules:
         value: 10
     description: "Cross-flow SYN ratio {cross_syn_ratio:.2f} at {cross_pps:.0f} pps"
 
-  - name: "Volumetric Flood"
+  - name: "Volumetric Flood (PPS)"
     enabled: true
     severity: "Medium"
-    logic: "any"
+    logic: "all"
     conditions:
       - field: "packets_per_second"
         op: "gte"
         value: 1000
+      - field: "packet_count"
+        op: "gte"
+        value: 500
+    description: "Volume PPS: {packets_per_second:.1f} pps over {packet_count} packets"
+
+  - name: "Volumetric Flood (Bps)"
+    enabled: true
+    severity: "Medium"
+    logic: "all"
+    conditions:
       - field: "bytes_per_second"
         op: "gte"
         value: 5000000
-    description: "Volume: {packets_per_second:.1f} pps / {bytes_per_second:.1f} Bps"
+      - field: "byte_count"
+        op: "gte"
+        value: 10000000
+    description: "Volume Bps: {bytes_per_second:.1f} Bps (total {byte_count} bytes)"
 
   - name: "UDP Flood"
     enabled: true
@@ -157,18 +170,30 @@ def test_syn_flood_cross_flow(rule_engine):
 # Per-flow: Volumetric
 # ------------------------------------------------------------------
 
-def test_volumetric_any_logic_pps(rule_engine):
-    """Volumetric uses 'any' logic — only PPS threshold exceeded."""
-    flow = _flow(src_ip="4.4.4.4", packets=2000, bytes_count=2000, duration=1.0)
-    alerts = rule_engine.evaluate(flow, "inbound")
-    assert any(a.rule_name == "Volumetric Flood" for a in alerts)
+def test_volumetric_pps_flood(rule_engine):
+    """Volumetric PPS rule requires both rate and packet count to exceed thresholds."""
+    # Scenario A: Rate is high, but packet count is low -> no alert
+    flow_low_count = _flow(src_ip="4.4.4.4", packets=10, bytes_count=1000, duration=0.005)
+    alerts = rule_engine.evaluate(flow_low_count, "inbound")
+    assert not any(a.rule_name == "Volumetric Flood (PPS)" for a in alerts)
+
+    # Scenario B: Both rate and packet count are high -> alert
+    flow_high = _flow(src_ip="4.4.4.4", packets=2000, bytes_count=2000, duration=1.0)
+    alerts = rule_engine.evaluate(flow_high, "inbound")
+    assert any(a.rule_name == "Volumetric Flood (PPS)" for a in alerts)
 
 
-def test_volumetric_any_logic_bps(rule_engine):
-    """Volumetric uses 'any' logic — only BPS threshold exceeded."""
-    flow = _flow(src_ip="5.5.5.5", packets=10, bytes_count=10000000, duration=1.0)
-    alerts = rule_engine.evaluate(flow, "inbound")
-    assert any(a.rule_name == "Volumetric Flood" for a in alerts)
+def test_volumetric_bps_flood(rule_engine):
+    """Volumetric Bps rule requires both rate and byte count to exceed thresholds."""
+    # Scenario A: Rate is high, but byte count is low -> no alert
+    flow_low_bytes = _flow(src_ip="5.5.5.5", packets=1, bytes_count=1000, duration=0.0001)
+    alerts = rule_engine.evaluate(flow_low_bytes, "inbound")
+    assert not any(a.rule_name == "Volumetric Flood (Bps)" for a in alerts)
+
+    # Scenario B: Both rate and byte count are high -> alert
+    flow_high = _flow(src_ip="5.5.5.5", packets=10, bytes_count=10000000, duration=1.0)
+    alerts = rule_engine.evaluate(flow_high, "inbound")
+    assert any(a.rule_name == "Volumetric Flood (Bps)" for a in alerts)
 
 
 # ------------------------------------------------------------------
