@@ -6,6 +6,7 @@ rules:
     enabled: true
     severity: "High"
     logic: "all"
+    cooldown_seconds: 30
     conditions:
       - field: "cross_unique_dst_ports"
         op: "gte"
@@ -22,6 +23,7 @@ rules:
     enabled: true
     severity: "Critical"
     logic: "all"
+    cooldown_seconds: 10
     conditions:
       - field: "cross_syn_ratio"
         op: "gte"
@@ -36,55 +38,27 @@ rules:
       with fake connection attempts.
 
   # ---------------------------------------------------------------
-  # Generic Volumetric Flood (High packets-per-second rate)
+  # Generic Volumetric Flood
   # ---------------------------------------------------------------
-  - name: "Volumetric Flood (PPS)"
+  - name: "Volumetric Flood"
     enabled: true
     severity: "Medium"
-    logic: "all"
+    logic: "any"
+    cooldown_seconds: 10
     conditions:
+      - field: "packets_per_second"
+        op: "gte"
+        value: 1000
+      - field: "bytes_per_second"
+        op: "gte"
+        value: 5000000
       - field: "cross_pps"
         op: "gte"
-        value: 500
-      - field: "cross_total_packets"
-        op: "gte"
-        value: 100
+        value: 5000
     description: >-
-      High packet rate detected: {cross_pps:.0f} packets/sec across {cross_flow_count} flows (total {cross_total_packets} packets).
-
-  # ---------------------------------------------------------------
-  # Generic Volumetric Flood (High bandwidth usage)
-  # ---------------------------------------------------------------
-  - name: "Volumetric Flood (Bps)"
-    enabled: true
-    severity: "Medium"
-    logic: "all"
-    conditions:
-      - field: "cross_bps"
-        op: "gte"
-        value: 200000
-      - field: "cross_total_bytes"
-        op: "gte"
-        value: 1000000
-    description: >-
-      High bandwidth usage detected: {cross_bps:.1f} bytes/sec across {cross_flow_count} flows (total {cross_total_bytes} bytes).
-
-  # ---------------------------------------------------------------
-  # Generic Volumetric Flood (Distributed/Cross-flow high packet rate)
-  # ---------------------------------------------------------------
-  - name: "Volumetric Flood (Cross-Flow)"
-    enabled: true
-    severity: "Medium"
-    logic: "all"
-    conditions:
-      - field: "cross_pps"
-        op: "gte"
-        value: 500
-      - field: "cross_flow_count"
-        op: "gte"
-        value: 20
-    description: >-
-      High cross-flow packet rate detected: {cross_pps:.0f} packets/sec across {cross_flow_count} flows.
+      Traffic from this source hit {cross_pps:.0f} packets/sec across
+      {cross_flow_count} flows — this volume is unusually high and may
+      indicate a flood attack designed to overwhelm the network.
 
   # ---------------------------------------------------------------
   # UDP Flood
@@ -93,6 +67,7 @@ rules:
     enabled: true
     severity: "High"
     logic: "all"
+    cooldown_seconds: 10
     conditions:
       - field: "protocol"
         op: "eq"
@@ -116,6 +91,7 @@ rules:
     enabled: true
     severity: "Critical"
     logic: "all"
+    cooldown_seconds: 10
     conditions:
       - field: "protocol"
         op: "eq"
@@ -145,6 +121,7 @@ rules:
     enabled: true
     severity: "Medium"
     logic: "all"
+    cooldown_seconds: 60
     conditions:
       - field: "duration"
         op: "gte"
@@ -165,6 +142,7 @@ rules:
     enabled: true
     severity: "Critical"
     logic: "all"
+    cooldown_seconds: 60
     conditions:
       - field: "direction"
         op: "eq"
@@ -191,6 +169,7 @@ rules:
     enabled: true
     severity: "High"
     logic: "all"
+    cooldown_seconds: 60
     conditions:
       - field: "direction"
         op: "eq"

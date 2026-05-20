@@ -8,6 +8,8 @@ tepegoz-ids (0.2.5) unstable; urgency=medium
   * Migrate all volumetric, UDP flood, and DNS amplification rules to use cross-flow metrics.
   * Correct SourceTracker timeline calculation by recording flow.last_seen instead of time.time().
   * Add cross_bps metric to track total bytes per second per source IP.
+  * Consolidate generic volumetric flood rules into a single rule with logic any.
+  * Implement rule-specific alert cooldown overrides with a 5.0s engine fallback value and thread safety.
 
  -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 01:21:00 +0300
 

@@ -166,13 +166,14 @@ class RuleEngine:
     across many micro-flows.
     """
 
-    def __init__(self, config_path: str, cooldown_seconds: float = 30.0, exclude_ports: set = None):
+    def __init__(self, config_path: str, cooldown_seconds: float = 5.0, exclude_ports: set = None):
         self.config_path = config_path
         self.rules: List[Dict[str, Any]] = []
         self.source_tracker = SourceTracker(window_seconds=30.0, exclude_ports=exclude_ports)
         self._cooldown_seconds = cooldown_seconds
         # (rule_name, src_ip) -> last_alert_timestamp
         self._alert_cooldowns: Dict[tuple, float] = {}
+        self._lock = threading.Lock()
         self.load_rules()
 
     def load_rules(self):
@@ -296,6 +297,16 @@ class RuleEngine:
             if triggered:
                 rule_name = rule.get('name', 'Unknown')
                 now = time.time()
+
+                # Rule-specific cooldown check (falls back to global _cooldown_seconds)
+                cooldown = rule.get('cooldown_seconds', self._cooldown_seconds)
+                if cooldown > 0:
+                    cooldown_key = (rule_name, flow.src_ip)
+                    with self._lock:
+                        last_alert = self._alert_cooldowns.get(cooldown_key, 0.0)
+                        if now - last_alert < cooldown:
+                            continue
+                        self._alert_cooldowns[cooldown_key] = now
 
                 # Build description from template with context values
                 desc_template = rule.get('description', '')

@@ -304,3 +304,44 @@ rules:
     assert any(a.rule_name == "Port Scan" for a in alerts)
 
 
+def test_rule_specific_cooldown(tmp_path):
+    """Verify that rule-specific cooldowns are respected and fall back correctly."""
+    config_file = tmp_path / "rules_cooldown.yaml"
+    config_file.write_text("""
+rules:
+  - name: "Port Scan"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    cooldown_seconds: 2
+    conditions:
+      - field: "cross_unique_dst_ports"
+        op: "gte"
+        value: 2
+    description: "Scanned {cross_unique_dst_ports} ports"
+""")
+    # Set fallback default cooldown to 1 second
+    engine = RuleEngine(str(config_file), cooldown_seconds=1)
+
+    # Trigger rule once
+    flow1 = _flow(src_ip="30.30.30.30", dst_port=80, syn_count=1)
+    engine.evaluate(flow1)
+    flow2 = _flow(src_ip="30.30.30.30", dst_port=443, syn_count=1)
+    alerts1 = engine.evaluate(flow2)
+    assert len(alerts1) == 1  # Fired!
+
+    # Immediate second trigger -> suppressed by the 2s cooldown
+    flow3 = _flow(src_ip="30.30.30.30", dst_port=22, syn_count=1)
+    alerts2 = engine.evaluate(flow3)
+    assert len(alerts2) == 0  # Suppressed!
+
+    # Wait 2.1 seconds for cooldown to expire
+    time.sleep(2.1)
+
+    # Should fire again
+    flow4 = _flow(src_ip="30.30.30.30", dst_port=23, syn_count=1)
+    alerts3 = engine.evaluate(flow4)
+    assert len(alerts3) == 1  # Fired again!
+
+
+
