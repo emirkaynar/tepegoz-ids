@@ -123,8 +123,8 @@ class SourceTracker:
             total_packets += pkt_count
             total_bytes += byte_count
 
-        elapsed = time.time() - active[0][0]
-        elapsed = max(elapsed, 0.1)  # avoid division by zero
+        elapsed = active[-1][0] - active[0][0]
+        elapsed = max(elapsed, 1.0)  # avoid division by zero
         
         return {
             "cross_unique_dst_ports": len(unique_ports),
