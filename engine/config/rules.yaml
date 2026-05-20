@@ -13,7 +13,7 @@ rules:
         value: 20
     description: >-
       A single device tried to connect to {cross_unique_dst_ports} different
-      ports in the last 30 seconds — this usually means someone is scanning
+      ports in the last 30 seconds - this usually means someone is scanning
       the network to find open services they can exploit.
 
   # ---------------------------------------------------------------
@@ -23,7 +23,7 @@ rules:
     enabled: true
     severity: "Critical"
     logic: "all"
-    cooldown_seconds: 10
+    cooldown_seconds: 30
     conditions:
       - field: "cross_syn_ratio"
         op: "gte"
@@ -34,7 +34,7 @@ rules:
     description: >-
       {cross_syn_ratio:.0%} of packets from this source are connection-request
       (SYN) packets at {cross_pps:.0f} packets/sec across {cross_flow_count}
-      flows — this looks like a denial-of-service attack flooding the target
+      flows - this looks like a denial-of-service attack flooding the target
       with fake connection attempts.
 
   # ---------------------------------------------------------------
@@ -44,20 +44,17 @@ rules:
     enabled: true
     severity: "Medium"
     logic: "any"
-    cooldown_seconds: 10
+    cooldown_seconds: 30
     conditions:
-      - field: "packets_per_second"
-        op: "gte"
-        value: 1000
-      - field: "bytes_per_second"
-        op: "gte"
-        value: 5000000
       - field: "cross_pps"
         op: "gte"
-        value: 5000
+        value: 1000
+      - field: "cross_bps"
+        op: "gte"
+        value: 5000000
     description: >-
       Traffic from this source hit {cross_pps:.0f} packets/sec across
-      {cross_flow_count} flows — this volume is unusually high and may
+      {cross_flow_count} flows - this volume is unusually high and may
       indicate a flood attack designed to overwhelm the network.
 
   # ---------------------------------------------------------------
@@ -67,7 +64,7 @@ rules:
     enabled: true
     severity: "High"
     logic: "all"
-    cooldown_seconds: 10
+    cooldown_seconds: 30
     conditions:
       - field: "protocol"
         op: "eq"
@@ -91,7 +88,7 @@ rules:
     enabled: true
     severity: "Critical"
     logic: "all"
-    cooldown_seconds: 10
+    cooldown_seconds: 30
     conditions:
       - field: "protocol"
         op: "eq"
@@ -111,14 +108,14 @@ rules:
     description: >-
       High-rate small DNS packets detected (avg {avg_packet_size:.0f} bytes at
       {cross_pps:.0f}/sec across {cross_flow_count} flows). Attackers often abuse public DNS servers to
-      amplify traffic toward a victim — the small request generates a much
+      amplify traffic toward a victim - the small request generates a much
       larger response.
 
   # ---------------------------------------------------------------
-  # Suspicious Long-Lived Connection
+  # Suspicious Long-Lived Connection # DISABLED
   # ---------------------------------------------------------------
   - name: "Suspicious Long Flow"
-    enabled: true
+    enabled: false
     severity: "Medium"
     logic: "all"
     cooldown_seconds: 60
@@ -131,7 +128,7 @@ rules:
         value: 100
     description: >-
       A connection has been active for {duration:.0f} seconds with
-      {packet_count} packets. Most normal connections are short-lived — a
+      {packet_count} packets. Most normal connections are short-lived - a
       long-running flow may indicate a hidden tunnel, a persistent backdoor,
       or an attacker maintaining access to the network.
 
@@ -160,7 +157,7 @@ rules:
       A device on your network has been sending a slow, steady trickle of
       outbound traffic for {duration:.0f} seconds ({packets_per_second:.2f}
       packets/sec). This "heartbeat" pattern is how malware checks in with
-      its command server — the low rate is designed to avoid detection.
+      its command server - the low rate is designed to avoid detection.
 
   # ---------------------------------------------------------------
   # Data Exfiltration (Large Outbound Transfer)
@@ -183,5 +180,80 @@ rules:
     description: >-
       A device sent {byte_count} bytes outbound over {duration:.0f} seconds.
       Large sustained outbound transfers can indicate that sensitive data is
-      being stolen from your network — especially if this device does not
+      being stolen from your network - especially if this device does not
       normally upload large files.
+
+  # ---------------------------------------------------------------
+  # ICMP Flood
+  # ---------------------------------------------------------------
+  - name: "ICMP Flood"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    cooldown_seconds: 30
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "ICMP"
+      - field: "cross_pps"
+        op: "gte"
+        value: 200
+      - field: "cross_flow_count"
+        op: "gte"
+        value: 10
+    description: >-
+      A burst of {cross_pps:.0f} ICMP packets/sec across {cross_flow_count}
+      flows was detected from this source. ICMP floods overwhelm the target
+      with ping requests and are one of the simplest denial-of-service attacks.
+
+  # ---------------------------------------------------------------
+  # SSH Brute Force
+  # ---------------------------------------------------------------
+  - name: "SSH Brute Force"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    cooldown_seconds: 60
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "TCP"
+      - field: "dst_port"
+        op: "eq"
+        value: 22
+      - field: "cross_flow_count"
+        op: "gte"
+        value: 10
+      - field: "cross_pps"
+        op: "gte"
+        value: 5
+    description: >-
+      {cross_flow_count} connection attempts to SSH (port 22) detected from this
+      source at {cross_pps:.0f} packets/sec. Repeated rapid connections to SSH
+      typically indicate a password-guessing brute force attack.
+
+  # ---------------------------------------------------------------
+  # RDP Brute Force
+  # ---------------------------------------------------------------
+  - name: "RDP Brute Force"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    cooldown_seconds: 60
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "TCP"
+      - field: "dst_port"
+        op: "eq"
+        value: 3389
+      - field: "cross_flow_count"
+        op: "gte"
+        value: 10
+      - field: "cross_pps"
+        op: "gte"
+        value: 5
+    description: >-
+      {cross_flow_count} connection attempts to RDP (port 3389) detected from this
+      source at {cross_pps:.0f} packets/sec. Repeated rapid connections to Remote
+      Desktop typically indicate a password-guessing brute force attack.

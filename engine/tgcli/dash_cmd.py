@@ -1,5 +1,4 @@
 import os
-import webbrowser
 
 from tgcli.provisioning import (
     provision_companion_services,
@@ -77,12 +76,7 @@ def handle_dash(args):
         write_dash_state(path, new_state)
         print("Dash setup completed. Services started and configured.")
         
-        # Open Grafana in browser
-        try:
-            webbrowser.open("http://localhost:3000")
-        except Exception:
-            print("Could not open browser automatically. Visit http://localhost:3000")
-
+        print("You can access the dashboard at http://localhost:3000")
         return 0
 
     if subcommand == "on":

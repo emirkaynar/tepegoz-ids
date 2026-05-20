@@ -93,6 +93,60 @@ rules:
         op: "gte"
         value: 1
     description: "This should never fire"
+
+  - name: "ICMP Flood"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "ICMP"
+      - field: "cross_pps"
+        op: "gte"
+        value: 10
+      - field: "cross_flow_count"
+        op: "gte"
+        value: 5
+    description: "ICMP flood at {cross_pps:.0f} pps across {cross_flow_count} flows"
+
+  - name: "SSH Brute Force"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "TCP"
+      - field: "dst_port"
+        op: "eq"
+        value: 22
+      - field: "cross_flow_count"
+        op: "gte"
+        value: 5
+      - field: "cross_pps"
+        op: "gte"
+        value: 3
+    description: "SSH brute force: {cross_flow_count} attempts at {cross_pps:.0f} pps"
+
+  - name: "RDP Brute Force"
+    enabled: true
+    severity: "High"
+    logic: "all"
+    conditions:
+      - field: "protocol"
+        op: "eq"
+        value: "TCP"
+      - field: "dst_port"
+        op: "eq"
+        value: 3389
+      - field: "cross_flow_count"
+        op: "gte"
+        value: 5
+      - field: "cross_pps"
+        op: "gte"
+        value: 3
+    description: "RDP brute force: {cross_flow_count} attempts at {cross_pps:.0f} pps"
 """
     config_file.write_text(config_content)
     # Disable cooldown for most tests so repeated evaluations aren't suppressed
@@ -343,5 +397,100 @@ rules:
     alerts3 = engine.evaluate(flow4)
     assert len(alerts3) == 1  # Fired again!
 
+
+# ------------------------------------------------------------------
+# Cross-flow: ICMP Flood
+# ------------------------------------------------------------------
+
+def test_icmp_flood_detection(rule_engine):
+    """Many ICMP flows from the same source should trigger ICMP Flood."""
+    alerts = []
+    for i in range(15):
+        flow = _flow(
+            src_ip="40.40.40.40", dst_ip=f"10.0.0.{i+1}", protocol="ICMP",
+            src_port=None, dst_port=None, packets=5, bytes_count=400,
+            duration=0.1, syn_count=0,
+            unique_dst_ports=set(),
+        )
+        alerts = rule_engine.evaluate(flow, "outbound")
+
+    assert any(a.rule_name == "ICMP Flood" for a in alerts)
+
+
+def test_icmp_flood_not_triggered_on_tcp(rule_engine):
+    """ICMP Flood rule should not fire for TCP traffic."""
+    alerts = []
+    for i in range(15):
+        flow = _flow(
+            src_ip="41.41.41.41", dst_ip=f"10.0.0.{i+1}", protocol="TCP",
+            packets=5, bytes_count=400, duration=0.1, syn_count=1,
+        )
+        alerts = rule_engine.evaluate(flow, "outbound")
+
+    assert not any(a.rule_name == "ICMP Flood" for a in alerts)
+
+
+# ------------------------------------------------------------------
+# Cross-flow: SSH Brute Force
+# ------------------------------------------------------------------
+
+def test_ssh_brute_force_detection(rule_engine):
+    """Many short TCP flows to port 22 from the same source should trigger."""
+    alerts = []
+    for i in range(12):
+        flow = _flow(
+            src_ip="42.42.42.42", dst_ip="10.0.0.1", protocol="TCP",
+            src_port=50000 + i, dst_port=22, packets=5, bytes_count=300,
+            duration=0.5, syn_count=1,
+        )
+        alerts = rule_engine.evaluate(flow, "inbound")
+
+    assert any(a.rule_name == "SSH Brute Force" for a in alerts)
+
+
+def test_ssh_brute_force_not_triggered_on_low_count(rule_engine):
+    """Only 2 flows to port 22 should not trigger brute force."""
+    alerts = []
+    for i in range(2):
+        flow = _flow(
+            src_ip="43.43.43.43", dst_ip="10.0.0.1", protocol="TCP",
+            src_port=50000 + i, dst_port=22, packets=5, bytes_count=300,
+            duration=0.5, syn_count=1,
+        )
+        alerts = rule_engine.evaluate(flow, "inbound")
+
+    assert not any(a.rule_name == "SSH Brute Force" for a in alerts)
+
+
+# ------------------------------------------------------------------
+# Cross-flow: RDP Brute Force
+# ------------------------------------------------------------------
+
+def test_rdp_brute_force_detection(rule_engine):
+    """Many short TCP flows to port 3389 from the same source should trigger."""
+    alerts = []
+    for i in range(12):
+        flow = _flow(
+            src_ip="44.44.44.44", dst_ip="10.0.0.1", protocol="TCP",
+            src_port=50000 + i, dst_port=3389, packets=5, bytes_count=300,
+            duration=0.5, syn_count=1,
+        )
+        alerts = rule_engine.evaluate(flow, "inbound")
+
+    assert any(a.rule_name == "RDP Brute Force" for a in alerts)
+
+
+def test_rdp_brute_force_not_triggered_on_wrong_port(rule_engine):
+    """Flows to port 80 should not trigger RDP brute force."""
+    alerts = []
+    for i in range(12):
+        flow = _flow(
+            src_ip="45.45.45.45", dst_ip="10.0.0.1", protocol="TCP",
+            src_port=50000 + i, dst_port=80, packets=5, bytes_count=300,
+            duration=0.5, syn_count=1,
+        )
+        alerts = rule_engine.evaluate(flow, "inbound")
+
+    assert not any(a.rule_name == "RDP Brute Force" for a in alerts)
 
 

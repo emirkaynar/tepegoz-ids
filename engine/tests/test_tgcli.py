@@ -102,3 +102,33 @@ def test_dash_on_fails_when_service_start_fails(tmp_path, monkeypatch):
     exit_code = run(["dash", "on"])
 
     assert exit_code == 1
+
+
+def test_no_args_prints_welcome_banner(capsys):
+    """Running tepegoz with no args should print the welcome banner."""
+    exit_code = run([])
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "Tepegoz IDS" in output
+    assert "QUICK START" in output
+    assert "tepegoz sensor iface set" in output
+
+
+def test_help_flag_prints_welcome_banner(capsys):
+    """Running tepegoz --help should print the welcome banner."""
+    exit_code = run(["--help"])
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "Tepegoz IDS" in output
+    assert "CONFIGURATION FILES" in output
+
+
+def test_unknown_command_suggests_help(capsys):
+    """Running tepegoz with an unknown command should suggest --help."""
+    exit_code = run(["bogus"])
+
+    assert exit_code == 2
+    output = capsys.readouterr().out
+    assert "--help" in output

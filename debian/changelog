@@ -1,3 +1,14 @@
+tepegoz-ids (0.3.0) unstable; urgency=medium
+
+  * Refactor CLI for better UX: unified "tepegoz [dashboard|sensor] ..." syntax,
+    comprehensive help banners, and automatic dashboard URL display.
+  * Migrate browser auto-launch from tk.Tk().withdraw() to a robust
+    webbrowser.open() call that works in both graphical and headless
+    environments without UI popups.
+  * Update package metadata to include developer names and university affiliation.
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 06:01:00 +0300
+
 tepegoz-ids (0.2.5) unstable; urgency=medium
 
   * Fix FlowProcessor thread-safety by adding Lock synchronization.
@@ -8,7 +19,7 @@ tepegoz-ids (0.2.5) unstable; urgency=medium
   * Migrate all volumetric, UDP flood, and DNS amplification rules to use cross-flow metrics.
   * Correct SourceTracker timeline calculation by recording flow.last_seen instead of time.time().
   * Add cross_bps metric to track total bytes per second per source IP.
-  * Consolidate generic volumetric flood rules into a single rule with logic any.
+  * Update Volumetric Flood rule to use cross-flow thresholds (cross_pps and cross_bps) to prevent false positives from legitimate HTTP connections.
   * Implement rule-specific alert cooldown overrides with a 5.0s engine fallback value and thread safety.
 
  -- Tepegoz IDS Team <maintainers@tepegoz.local>  Wed, 20 May 2026 01:21:00 +0300
