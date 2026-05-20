@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  # -------------------------------------------------------------------
+  # Job 1: Run the full test suite
+  # -------------------------------------------------------------------
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        working-directory: engine
+        run: python -m pytest tests/ -v --tb=short
+
+  # -------------------------------------------------------------------
+  # Job 2: Build the arm64 .deb package
+  # -------------------------------------------------------------------
+  build-deb:
+    name: Build .deb (arm64)
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for arm64
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Build .deb in Debian arm64 container
+        run: |
+          docker run --rm --platform linux/arm64 \
+            -v "${{ github.workspace }}:/src" \
+            -w /src \
+            debian:bookworm bash -c '
+              set -e
+
+              echo "--- Installing build tools ---"
+              apt-get update -qq
+              apt-get install -y --no-install-recommends \
+                dpkg-dev debhelper dh-python python3 dos2unix
+
+              echo "--- Normalizing line endings ---"
+              find debian -type f -exec dos2unix {} + 2>/dev/null || true
+
+              echo "--- Setting permissions ---"
+              chmod +x debian/rules debian/postinst debian/prerm debian/postrm debian/tepegoz
+              chmod -x debian/tepegoz-ids.install debian/control
+
+              echo "--- Building package ---"
+              dpkg-buildpackage -us -uc -b
+
+              echo "--- Collecting .deb ---"
+              mkdir -p /src/dist
+              echo "Build output:"
+              ls -lh /tepegoz-ids_*.deb 2>/dev/null || true
+              cp /tepegoz-ids_*.deb /src/dist/
+              echo "Artifact:"
+              ls -lh /src/dist/
+            '
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tepegoz-ids-deb
+          path: dist/tepegoz-ids_*.deb
+          retention-days: 30
+          if-no-files-found: error
+
+  # -------------------------------------------------------------------
+  # Job 3: Publish GitHub Release on version tags
+  # -------------------------------------------------------------------
+  release:
+    name: Publish Release
+    needs: build-deb
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tepegoz-ids-deb
+          path: dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/tepegoz-ids_*.deb
+          generate_release_notes: true
+          draft: false
+          prerelease: false

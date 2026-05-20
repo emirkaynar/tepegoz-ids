@@ -18,7 +18,6 @@ case "$1" in
 
         # Print welcome banner for new users
         cat <<'BANNER'
-
   █████                                                            
  ░░███                                                             
  ███████    ██████  ████████   ██████   ███████  ██████   █████████
@@ -30,46 +29,31 @@ case "$1" in
                     ░███               ███ ░███                    
                     █████             ░░██████                     
                    ░░░░░               ░░░░░░                       
-
   Tepegoz IDS - Network Security Monitor for Small Networks
   by Emir Kaynar & Samil Keklikoglu - Konya Food and Agriculture University
   =========================================================
-
-  Tepegoz watches your network traffic for suspicious activity
-  like port scans, brute force attacks, and data floods - without
-  looking at private content. Think of it as a security camera
-  for your internet connection.
+  Tepegoz watches your network for suspicious activity like port scans, brute force attacks and data 
+  floods - without looking at private content. Think of it as a security camera for your network.
 
   QUICK START (3 steps)
   ---------------------
+  1. Tell Tepegoz which network interface to monitor: sudo tepegoz sensor iface set <your-interface>
+     > Not sure which one? Run: ip link
+     > (Usually "eth0" for wired or "wlan0" for Wi-Fi)
 
-  1. Tell Tepegoz which network interface to monitor:
+  2. Set up the dashboard (Grafana + InfluxDB): sudo tepegoz dash setup
+     > This installs and configures the monitoring dashboard.
+     > A browser window will open at http://localhost:3000
 
-       sudo tepegoz sensor iface set <your-interface>
-
-     Not sure which one? Run: ip link
-     (Usually "eth0" for wired or "wlan0" for Wi-Fi)
-
-  2. Set up the dashboard (Grafana + InfluxDB):
-
-       sudo tepegoz dash setup
-
-     This installs and configures the monitoring dashboard.
-     A browser window will open at http://localhost:3000
-
-  3. Check that everything is running:
-
-       tepegoz sensor status
+  3. Check that everything is running: tepegoz sensor status
 
   CONFIGURATION FILES
   -------------------
-
     Sensor settings : /etc/tepegoz-ids/sensor.conf
     Detection rules : /etc/tepegoz-ids/rules.yaml
 
   COMMANDS
   --------
-
     tepegoz sensor iface set <name>   Set the network interface
     tepegoz sensor status             Show sensor status
     tepegoz dash setup                Install & configure dashboard
@@ -78,7 +62,6 @@ case "$1" in
     tepegoz dash status               Show dashboard status
 
   Run "tepegoz --help" to see this message again.
-
 BANNER
     ;;
 esac
