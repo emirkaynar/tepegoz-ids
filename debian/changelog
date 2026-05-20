@@ -1,3 +1,14 @@
+tepegoz-ids (0.3.1) unstable; urgency=medium
+
+  * Add LICENSE and README.md files to the project - in a cool way.
+  * Updated the release script to strip version number from package file names for stable download URLs.
+  * Disable SSH Brute Force and RDP Brute Force rules by default.
+    These rules cause high CPU usage and false positives in the current network environment.
+  * Fixed alert count in dashboard (KPI section) staying "1", it now shows the full alert count.
+
+
+ -- Tepegoz IDS Team <maintainers@tepegoz.local>  Thu, 21 May 2026 02:13:00 +0300
+
 tepegoz-ids (0.3.0) unstable; urgency=medium
 
   * Refactor CLI for better UX: unified "tepegoz [dashboard|sensor] ..." syntax,

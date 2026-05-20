@@ -437,7 +437,7 @@ def test_icmp_flood_not_triggered_on_tcp(rule_engine):
 def test_ssh_brute_force_detection(rule_engine):
     """Many short TCP flows to port 22 from the same source should trigger."""
     alerts = []
-    for i in range(12):
+    for i in range(35):
         flow = _flow(
             src_ip="42.42.42.42", dst_ip="10.0.0.1", protocol="TCP",
             src_port=50000 + i, dst_port=22, packets=5, bytes_count=300,
@@ -469,7 +469,7 @@ def test_ssh_brute_force_not_triggered_on_low_count(rule_engine):
 def test_rdp_brute_force_detection(rule_engine):
     """Many short TCP flows to port 3389 from the same source should trigger."""
     alerts = []
-    for i in range(12):
+    for i in range(35):
         flow = _flow(
             src_ip="44.44.44.44", dst_ip="10.0.0.1", protocol="TCP",
             src_port=50000 + i, dst_port=3389, packets=5, bytes_count=300,

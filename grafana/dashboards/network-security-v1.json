@@ -186,7 +186,7 @@
                 "overrides": []
             },
             "options": {
-                "reduceOptions": { "calcs": ["count"], "fields": "", "values": false },
+                "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
                 "graphMode": "none",
                 "colorMode": "background",
                 "justifyMode": "auto",

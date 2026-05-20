@@ -83,7 +83,7 @@ WELCOME_BANNER = r"""
                    ░░░░░               ░░░░░░                       
   Tepegoz IDS - Network Security Monitor for Small Networks
   by Emir Kaynar & Samil Keklikoglu - Konya Food and Agriculture University
-  =========================================================
+  ==================================================================================================
   Tepegoz watches your network for suspicious activity like port scans, brute force attacks and data 
   floods - without looking at private content. Think of it as a security camera for your network.
 
@@ -95,7 +95,8 @@ WELCOME_BANNER = r"""
 
   2. Set up the dashboard (Grafana + InfluxDB): sudo tepegoz dash setup
      > This installs and configures the monitoring dashboard.
-     > A browser window will open at http://localhost:3000
+     > Go to http://localhost:3000 in your browser to see the dashboard.
+     > Default credentials are: Username: admin, Password: admin (Change them immediately!)
 
   3. Check that everything is running: tepegoz sensor status
 
@@ -114,4 +115,5 @@ WELCOME_BANNER = r"""
     tepegoz dash status               Show dashboard status
 
   Run "tepegoz --help" to see this message again.
+  ==================================================================================================
 """

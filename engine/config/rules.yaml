@@ -207,10 +207,10 @@ rules:
       with ping requests and are one of the simplest denial-of-service attacks.
 
   # ---------------------------------------------------------------
-  # SSH Brute Force
+  # SSH Brute Force # DISABLED
   # ---------------------------------------------------------------
   - name: "SSH Brute Force"
-    enabled: true
+    enabled: false
     severity: "High"
     logic: "all"
     cooldown_seconds: 60
@@ -223,20 +223,20 @@ rules:
         value: 22
       - field: "cross_flow_count"
         op: "gte"
-        value: 10
+        value: 30
       - field: "cross_pps"
         op: "gte"
-        value: 5
+        value: 20
     description: >-
       {cross_flow_count} connection attempts to SSH (port 22) detected from this
       source at {cross_pps:.0f} packets/sec. Repeated rapid connections to SSH
       typically indicate a password-guessing brute force attack.
 
   # ---------------------------------------------------------------
-  # RDP Brute Force
+  # RDP Brute Force # DISABLED
   # ---------------------------------------------------------------
   - name: "RDP Brute Force"
-    enabled: true
+    enabled: false
     severity: "High"
     logic: "all"
     cooldown_seconds: 60
@@ -249,10 +249,10 @@ rules:
         value: 3389
       - field: "cross_flow_count"
         op: "gte"
-        value: 10
+        value: 30
       - field: "cross_pps"
         op: "gte"
-        value: 5
+        value: 20
     description: >-
       {cross_flow_count} connection attempts to RDP (port 3389) detected from this
       source at {cross_pps:.0f} packets/sec. Repeated rapid connections to Remote

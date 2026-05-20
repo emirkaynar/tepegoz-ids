@@ -115,6 +115,15 @@ jobs:
           pattern: tepegoz-ids-*
           merge-multiple: true
 
+      - name: Rename .deb files (strip version for stable download URLs)
+        run: |
+          for f in dist/tepegoz-ids_*.deb; do
+            arch=$(echo "$f" | sed 's/.*_\([^_]*\)\.deb/\1/')
+            mv "$f" "dist/tepegoz-ids_${arch}.deb"
+            echo "Renamed: $f -> dist/tepegoz-ids_${arch}.deb"
+          done
+          ls -lh dist/
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
