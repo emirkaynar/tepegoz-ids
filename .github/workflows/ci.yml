@@ -39,25 +39,30 @@ jobs:
         run: python -m pytest tests/ -v --tb=short
 
   # -------------------------------------------------------------------
-  # Job 2: Build the arm64 .deb package
+  # Job 2: Build .deb packages (amd64 + arm64)
   # -------------------------------------------------------------------
   build-deb:
-    name: Build .deb (arm64)
+    name: Build .deb (${{ matrix.arch }})
     needs: test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up QEMU for arm64
+      - name: Set up QEMU
+        if: matrix.arch != 'amd64'
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: arm64
+          platforms: ${{ matrix.arch }}
 
-      - name: Build .deb in Debian arm64 container
+      - name: Build .deb in Debian container
         run: |
-          docker run --rm --platform linux/arm64 \
+          docker run --rm \
+            ${{ matrix.arch != 'amd64' && format('--platform linux/{0}', matrix.arch) || '' }} \
             -v "${{ github.workspace }}:/src" \
             -w /src \
             debian:bookworm bash -c '
@@ -88,7 +93,7 @@ jobs:
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tepegoz-ids-deb
+          name: tepegoz-ids-${{ matrix.arch }}
           path: dist/tepegoz-ids_*.deb
           retention-days: 30
           if-no-files-found: error
@@ -103,11 +108,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download .deb artifact
+      - name: Download all .deb artifacts
         uses: actions/download-artifact@v4
         with:
-          name: tepegoz-ids-deb
           path: dist
+          pattern: tepegoz-ids-*
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
