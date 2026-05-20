@@ -1,4 +1,5 @@
 import json
+import os
 
 import tgcli.dash_cmd as dash_cmd
 import tgcli.provisioning as provisioning
@@ -47,6 +48,7 @@ def test_sensor_iface_set_reports_restart_when_successful(tmp_path, monkeypatch,
 def test_dash_setup_is_idempotent(tmp_path, monkeypatch):
     state_file = tmp_path / "dash-state.json"
     monkeypatch.setenv("TEPEGOZ_DASH_STATE_PATH", str(state_file))
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
     monkeypatch.setattr(dash_cmd, "provision_companion_services", lambda **_: (True, "apt"))
     monkeypatch.setattr(provisioning, "configure_influxdb", lambda: "dummy-token")
     monkeypatch.setattr(provisioning, "configure_grafana", lambda _t: True)
@@ -64,6 +66,7 @@ def test_dash_setup_is_idempotent(tmp_path, monkeypatch):
 def test_dash_on_off_status_flow(tmp_path, monkeypatch, capsys):
     state_file = tmp_path / "dash-state.json"
     monkeypatch.setenv("TEPEGOZ_DASH_STATE_PATH", str(state_file))
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
     monkeypatch.setattr(dash_cmd, "provision_companion_services", lambda **_: (True, "apt"))
     monkeypatch.setattr(provisioning, "configure_influxdb", lambda: "dummy-token")
     monkeypatch.setattr(provisioning, "configure_grafana", lambda _t: True)
@@ -82,6 +85,7 @@ def test_dash_on_off_status_flow(tmp_path, monkeypatch, capsys):
 def test_dash_setup_provisioning_failure_returns_error(tmp_path, monkeypatch):
     state_file = tmp_path / "dash-state.json"
     monkeypatch.setenv("TEPEGOZ_DASH_STATE_PATH", str(state_file))
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
     monkeypatch.setattr(dash_cmd, "provision_companion_services", lambda **_: (False, "failed"))
 
     exit_code = run(["dash", "setup"])
@@ -93,6 +97,7 @@ def test_dash_setup_provisioning_failure_returns_error(tmp_path, monkeypatch):
 def test_dash_on_fails_when_service_start_fails(tmp_path, monkeypatch):
     state_file = tmp_path / "dash-state.json"
     monkeypatch.setenv("TEPEGOZ_DASH_STATE_PATH", str(state_file))
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
     monkeypatch.setattr(dash_cmd, "provision_companion_services", lambda **_: (True, "apt"))
     monkeypatch.setattr(provisioning, "configure_influxdb", lambda: "dummy-token")
     monkeypatch.setattr(provisioning, "configure_grafana", lambda _t: True)
