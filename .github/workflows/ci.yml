@@ -66,7 +66,7 @@ jobs:
               echo "--- Installing build tools ---"
               apt-get update -qq
               apt-get install -y --no-install-recommends \
-                dpkg-dev debhelper dh-python python3 dos2unix
+                build-essential fakeroot dpkg-dev debhelper dh-python python3 dos2unix
 
               echo "--- Normalizing line endings ---"
               find debian -type f -exec dos2unix {} + 2>/dev/null || true
@@ -80,11 +80,9 @@ jobs:
 
               echo "--- Collecting .deb ---"
               mkdir -p /src/dist
-              echo "Build output:"
-              ls -lh /tepegoz-ids_*.deb 2>/dev/null || true
-              cp /tepegoz-ids_*.deb /src/dist/
-              echo "Artifact:"
+              find / -maxdepth 1 -name "tepegoz-ids_*.deb" -exec cp {} /src/dist/ \;
               ls -lh /src/dist/
+              test -f /src/dist/tepegoz-ids_*.deb || { echo "ERROR: .deb not found"; exit 1; }
             '
 
       - name: Upload .deb artifact
